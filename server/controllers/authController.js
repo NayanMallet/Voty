@@ -1,6 +1,5 @@
-
 import jwt from 'jsonwebtoken'
-import User from "../models/User";
+import User from "../models/User.js"
 
 export const register = async (req, res) => {
     const { name, email, password } = req.body
@@ -13,10 +12,13 @@ export const register = async (req, res) => {
         await user.save()
 
         const payload = { user: { id: user.id } }
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' })
+        const token = jwt.sign(payload, process.env.JWT_SECRET, {
+            expiresIn: "1d",
+        });
 
         res.status(201).json({ token })
     } catch (error) {
+        console.error("❌ Error in controller:", error.message);
         console.error(error.message)
         res.status(500).send('Server error')
     }
@@ -33,7 +35,9 @@ export const login = async (req, res) => {
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' })
 
         const payload = { user: { id: user.id } }
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' })
+        const token = jwt.sign(payload, process.env.JWT_SECRET, {
+            expiresIn: "1d",
+        });
 
         res.json({ token })
     } catch (error) {
