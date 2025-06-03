@@ -29,6 +29,50 @@ export const createPoll = async (req, res) => {
     }
 }
 
+export const updatePoll = async (req, res) => {
+    const { id: pollId } = req.params;
+    const userId = req.user.id;
+    const { name, questions } = req.body;
+
+    try {
+        const poll = await Poll.findById(pollId);
+        if (!poll) return res.status(404).json({ message: 'Poll not found' });
+
+        if (poll.creator.toString() !== userId)
+            return res.status(403).json({ message: 'Not authorized' });
+
+        if (name) poll.name = name;
+        if (questions && Array.isArray(questions)) {
+            poll.questions = questions;
+        }
+
+        await poll.save();
+        res.json({ message: 'Poll updated', poll });
+    } catch (err) {
+        console.error('Update poll error:', err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+export const deletePoll = async (req, res) => {
+    const { id: pollId } = req.params;
+    const userId = req.user.id;
+
+    try {
+        const poll = await Poll.findById(pollId);
+        if (!poll) return res.status(404).json({ message: 'Poll not found' });
+
+        if (poll.creator.toString() !== userId)
+            return res.status(403).json({ message: 'Not authorized' });
+
+        await poll.deleteOne();
+        res.json({ message: 'Poll deleted successfully' });
+    } catch (err) {
+        console.error('Delete poll error:', err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 export const getAllPolls = async (req, res) => {
     try {
         const polls = await Poll.find().select('-__v').populate('creator', 'name email')
@@ -97,5 +141,81 @@ export const getResponsesByPoll = async (req, res) => {
         res.status(500).json({ message: 'Server error' })
     }
 }
+
+export const updateResponse = async (req, res) => {
+    try {
+        const { id: pollId, responseId } = req.params;
+        const userId = req.user.id;
+        const { answers } = req.body;
+
+        const response = await Response.findById(responseId);
+        if (!response) return res.status(404).json({ message: 'Response not found' });
+
+        if (
+            response.poll_id.toString() !== pollId ||
+            response.user_id.toString() !== userId
+        ) {
+            return res.status(403).json({ message: 'Not authorized to update this response' });
+        }
+
+        response.answers = answers;
+        await response.save();
+
+        res.json({ message: 'Response updated', response });
+    } catch (err) {
+        console.error('Update response error:', err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+export const getPollStats = async (req, res) => {
+    try {
+        const { id: pollId } = req.params;
+        const userId = req.user.id;
+
+        const poll = await Poll.findById(pollId);
+        if (!poll) return res.status(404).json({ message: 'Poll not found' });
+
+        if (poll.creator.toString() !== userId)
+            return res.status(403).json({ message: 'Not authorized' });
+
+        const responses = await Response.find({ poll_id: pollId });
+
+        const stats = {
+            totalResponses: responses.length,
+            questions: {}
+        };
+
+        for (const question of poll.questions) {
+            if (question.type === 'multiple_choice') {
+                stats.questions[question._id] = {
+                    title: question.title,
+                    type: question.type,
+                    options: Object.fromEntries(
+                        question.options.map(opt => [opt, 0])
+                    )
+                };
+            }
+        }
+
+        for (const response of responses) {
+            for (const answer of response.answers) {
+                const stat = stats.questions[answer.question_id];
+                if (stat && Array.isArray(answer.answer)) {
+                    for (const option of answer.answer) {
+                        if (stat.options[option] !== undefined) {
+                            stat.options[option] += 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        res.json(stats);
+    } catch (err) {
+        console.error('Poll stats error:', err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
 
 
