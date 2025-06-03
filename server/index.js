@@ -3,6 +3,7 @@ import dotenv from 'dotenv'
 import connectDB from './config/db.js'
 import authRoutes from './routes/auth.js'
 import protectedRoutes from './routes/protected.js'
+import pollRoutes from './routes/poll.js'
 
 dotenv.config()
 
@@ -15,6 +16,8 @@ app.use(express.json())
 
 app.use('/api/auth', authRoutes)
 app.use('/api/protected', protectedRoutes)
+app.use('/api/polls', pollRoutes)
+
 
 app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`)
