@@ -13,6 +13,7 @@ import { toTypedSchema } from '@vee-validate/zod'
 import AddQuestionPopover from './AddQuestionPopover.vue'
 import QuestionItem from './QuestionItem.vue'
 import { v4 as uuidv4 } from 'uuid'
+import { createPoll } from '@/stores/poll'
 
 const open = ref(false)
 
@@ -66,6 +67,13 @@ const moveQuestion = (id, direction) => {
   form.setFieldValue('questions', updated)
 }
 
+const updateLabel = (id, newLabel) => {
+  const updated = form.values.questions.map(q =>
+      q.id === id ? { ...q, label: newLabel } : q
+  )
+  form.setFieldValue('questions', updated)
+}
+
 const onSubmit = async () => {
   const isValid = await form.validate()
   if (!isValid) {
@@ -77,12 +85,34 @@ const onSubmit = async () => {
     return
   }
 
-  toast({
-    title: 'Form created',
-    description: h('pre', { class: 'mt-2 p-2 text-white bg-slate-950 rounded' }, JSON.stringify(form.values, null, 2))
-  })
+  try {
+    const payload = {
+      name: form.values.title,
+      questions: form.values.questions.map(q => ({
+        title: q.label,
+        type: q.subType === 'short' || q.subType === 'paragraph' || q.subType === 'date'
+            ? 'open'
+            : 'multiple_choice',
+        options: q.subType === 'single' || q.subType === 'multiple' ? [] : undefined
+      }))
+    }
 
-  open.value = false
+    await createPoll(payload)
+
+    toast({
+      title: 'Form successfully created',
+      description: 'Your form has been saved.'
+    })
+
+    form.resetForm()
+    open.value = false
+  } catch (err) {
+    toast({
+      title: 'Submission failed',
+      description: err.message || 'An error occurred.',
+      variant: 'destructive'
+    })
+  }
 }
 </script>
 
@@ -120,6 +150,7 @@ const onSubmit = async () => {
               @remove="() => removeQuestion(q.id)"
               @move-up="() => moveQuestion(q.id, 'up')"
               @move-down="() => moveQuestion(q.id, 'down')"
+              @update:label="(val) => updateLabel(q.id, val)"
           />
         </div>
 

@@ -10,7 +10,7 @@ const props = defineProps({
   isLast: Boolean
 })
 
-const emit = defineEmits(['remove', 'move-up', 'move-down'])
+const emit = defineEmits(['remove', 'move-up', 'move-down', 'update:label'])
 
 const getLabel = computed(() => {
   const { type, subType } = props.question
@@ -31,7 +31,8 @@ const getLabel = computed(() => {
   <div class="border rounded-md p-4 relative">
     <div class="flex justify-between items-start gap-2">
       <Input
-          v-model="question.label"
+          :modelValue="question.label"
+          @update:modelValue="val => emit('update:label', val)"
           placeholder="Question title"
           class="border-none shadow-none px-0 text-base font-medium focus-visible:ring-0"
       />
