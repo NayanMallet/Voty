@@ -1,48 +1,96 @@
 <script setup>
-import { cn } from '@/lib/utils.js';
-import { Button } from '@/components/ui/button/index.js';
-import { Input } from '@/components/ui/input/index.js';
-import { Label } from '@/components/ui/label/index.js';
+import { ref, h } from 'vue'
+import { useForm } from 'vee-validate'
+import { z } from 'zod'
+import { toTypedSchema } from '@vee-validate/zod'
+import { vAutoAnimate } from '@formkit/auto-animate/vue'
+
+import { useAuth } from '@/stores/auth'
+import { toast } from '@/components/ui/toast'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form'
+
+const auth = useAuth()
+
+const registerSchema = toTypedSchema(z.object({
+  name: z.string().min(2, 'Nom trop court'),
+  email: z.string().email({ message: 'Email invalide' }),
+  password: z.string().min(6, 'Mot de passe trop court'),
+}))
+
+const form = useForm({
+  validationSchema: registerSchema,
+  validateOnInput: true,
+})
+
+const onSubmit = form.handleSubmit(async (values) => {
+  console.log('✅ Register values:', values)
+  try {
+    await auth.register(values.name, values.email, values.password)
+    toast({
+      title: 'Compte créé',
+      description: h('span', {}, `Bienvenue ${values.name} !`),
+    })
+  } catch (err) {
+    console.error('❌ Register failed:', err)
+    toast({
+      title: 'Erreur',
+      description: 'Impossible de créer le compte',
+      variant: 'destructive',
+    })
+  }
+})
 </script>
 
 <template>
-  <form :class="cn('flex flex-col gap-6')">
-    <div class="flex flex-col items-start gap-2 text-start">
+  <form class="space-y-6 w-full max-w-md" @submit.prevent="onSubmit">
+    <div>
       <h1 class="text-2xl font-bold">Create an account</h1>
-      <p class="text-balance text-sm text-muted-foreground">
-        Let’s get started. Fill in the details below to create your account.
-      </p>
+      <p class="text-sm text-muted-foreground">Let’s get started. Fill in the details below.</p>
     </div>
-    <div class="grid gap-6">
-      <div class="grid gap-2">
-        <Label for="name">Name</Label>
-        <Input id="name" type="text" placeholder="Name" required />
-      </div>
-      <div class="grid gap-2">
-        <Label for="email">Email</Label>
-        <Input id="email" type="email" placeholder="m@example.com" required />
-      </div>
-      <div class="grid gap-2">
-        <div class="flex items-center">
-          <Label for="password">Password</Label>
-          <a
-            href="#"
-            class="ml-auto text-sm underline-offset-4 hover:underline"
-          >
-            Forgot your password?
-          </a>
-        </div>
-        <Input id="password" type="password" placeholder="********" required />
-        <p class="text-xs text-muted-foreground">
-          Minimum 8 characters.
-        </p>
 
-      </div>
-      <Button type="submit" class="w-full">Sign up</Button>
-    </div>
+    <FormField name="name" v-slot="{ componentField }">
+      <FormItem v-auto-animate>
+        <FormLabel>Name</FormLabel>
+        <FormControl>
+          <Input type="text" placeholder="Your name" v-bind="componentField" />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    </FormField>
+
+    <FormField name="email" v-slot="{ componentField }">
+      <FormItem v-auto-animate>
+        <FormLabel>Email</FormLabel>
+        <FormControl>
+          <Input type="email" placeholder="m@example.com" v-bind="componentField" />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    </FormField>
+
+    <FormField name="password" v-slot="{ componentField }">
+      <FormItem v-auto-animate>
+        <FormLabel>Password</FormLabel>
+        <FormControl>
+          <Input type="password" placeholder="********" v-bind="componentField" />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    </FormField>
+
+    <Button type="submit" class="w-full">Sign up</Button>
+
     <div class="text-center text-sm">
       Already have an account?
-      <a href="/login" class="underline underline-offset-4"> Sign in </a>
+      <a href="/login" class="underline">Sign in</a>
     </div>
   </form>
 </template>

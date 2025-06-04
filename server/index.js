@@ -4,6 +4,7 @@ import connectDB from './config/db.js'
 import authRoutes from './routes/auth.js'
 import protectedRoutes from './routes/protected.js'
 import pollRoutes from './routes/poll.js'
+import cors from 'cors'
 
 dotenv.config()
 
@@ -14,6 +15,10 @@ connectDB()
 
 app.use(express.json())
 
+app.use(cors({
+    origin: process.env.CLIENT_URL,
+    credentials: true,
+}))
 app.use('/api/auth', authRoutes)
 app.use('/api/protected', protectedRoutes)
 app.use('/api/polls', pollRoutes)

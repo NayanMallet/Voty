@@ -2,24 +2,18 @@ import { defineStore } from 'pinia'
 import api from '@/services/axios'
 import router from '@/router'
 
-interface User {
-    id: string
-    name?: string
-    email?: string
-}
-
 export const useAuth = defineStore('auth', {
     state: () => ({
         token: localStorage.getItem('token') || '',
-        user: null as User | null,
+        user: null,
     }),
 
     getters: {
-        isAuthenticated: (state) => !!state.token,
+        isAuthenticated: state => !!state.token,
     },
 
     actions: {
-        async login(email: string, password: string) {
+        async login(email, password) {
             const res = await api.post('/auth/login', { email, password })
             this.token = res.data.token
             localStorage.setItem('token', this.token)
@@ -27,7 +21,7 @@ export const useAuth = defineStore('auth', {
             router.push('/dashboard')
         },
 
-        async register(name: string, email: string, password: string) {
+        async register(name, email, password) {
             const res = await api.post('/auth/register', { name, email, password })
             this.token = res.data.token
             localStorage.setItem('token', this.token)
@@ -39,7 +33,7 @@ export const useAuth = defineStore('auth', {
             try {
                 const res = await api.get('/auth/me')
                 this.user = res.data
-            } catch (err) {
+            } catch {
                 this.logout()
             }
         },
@@ -50,5 +44,5 @@ export const useAuth = defineStore('auth', {
             localStorage.removeItem('token')
             router.push('/login')
         },
-    },
+    }
 })
