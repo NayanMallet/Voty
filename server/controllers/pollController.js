@@ -3,6 +3,7 @@ import Response from '../models/Response.js'
 import User from '../models/User.js'
 
 export const createPoll = async (req, res) => {
+    console.log('→ payload received:', req.body)
     try {
         const { name, questions } = req.body
 

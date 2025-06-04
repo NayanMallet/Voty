@@ -88,6 +88,7 @@ const onSubmit = async () => {
   try {
     const payload = {
       name: form.values.title,
+      description: form.values.description,
       questions: form.values.questions.map(q => ({
         title: q.label,
         type: q.subType === 'short' || q.subType === 'paragraph' || q.subType === 'date'
@@ -129,12 +130,15 @@ const onSubmit = async () => {
       <form @submit.prevent="onSubmit" class="space-y-6">
         <div>
           <Input
-              v-model="form.values.title"
+              :modelValue="form.values.title"
+              @update:modelValue="val => form.setFieldValue('title', val)"
               placeholder="Form title"
               class="text-2xl font-bold text-heading border-none outline-none shadow-none focus-visible:ring-0 px-0"
           />
+
           <Input
-              v-model="form.values.description"
+              :modelValue="form.values.description"
+              @update:modelValue="val => form.setFieldValue('description', val)"
               placeholder="Add a short description here"
               class="text-sm text-muted placeholder:text-muted border-none outline-none shadow-none focus-visible:ring-0 px-0"
           />

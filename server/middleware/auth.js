@@ -6,9 +6,11 @@ const auth = (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET)
+        console.log('✅ Token decoded:', decoded) // <-- 👈 log ici
         req.user = decoded.user
         next()
     } catch (err) {
+        console.error('❌ Invalid token:', err.message)
         res.status(401).json({ message: 'Token is not valid' })
     }
 }
