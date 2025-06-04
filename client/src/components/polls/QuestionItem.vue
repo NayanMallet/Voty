@@ -10,7 +10,7 @@ const props = defineProps({
   isLast: Boolean
 })
 
-const emit = defineEmits(['remove', 'move'])
+const emit = defineEmits(['remove', 'move-up', 'move-down'])
 
 const getLabel = computed(() => {
   const { type, subType } = props.question
@@ -40,7 +40,7 @@ const getLabel = computed(() => {
             variant="ghost"
             size="icon"
             class="text-muted hover:text-primary"
-            @click.stop.prevent="emit('move', question.id, -1)"
+            @click.stop.prevent="emit('move-up')"
             :disabled="isFirst"
         >
           <ArrowUp class="w-4 h-4" />
@@ -49,7 +49,7 @@ const getLabel = computed(() => {
             variant="ghost"
             size="icon"
             class="text-muted hover:text-primary"
-            @click.stop.prevent="emit('move', question.id, 1)"
+            @click.stop.prevent="emit('move-down')"
             :disabled="isLast"
         >
           <ArrowDown class="w-4 h-4" />
@@ -59,7 +59,7 @@ const getLabel = computed(() => {
             variant="ghost"
             size="icon"
             class="text-muted hover:text-destructive"
-            @click.stop.prevent="emit('remove', question.id)"
+            @click.stop.prevent="emit('remove')"
         >
           <Trash class="w-4 h-4" />
         </Button>

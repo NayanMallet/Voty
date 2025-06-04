@@ -1,7 +1,7 @@
 <script setup>
 import { ref, h, nextTick } from 'vue'
 import {
-  Dialog, DialogTrigger, DialogContent, DialogFooter
+  Dialog, DialogTrigger, DialogContent, DialogFooter, DialogTitle, DialogDescription
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -38,8 +38,10 @@ const form = useForm({
 })
 
 const addQuestion = (question) => {
-  const newQuestion = { ...question, id: uuidv4() }
-  form.setFieldValue('questions', [...form.values.questions, newQuestion])
+  form.setFieldValue('questions', [
+    ...form.values.questions,
+    { ...question, id: uuidv4() }
+  ])
   toast({
     title: 'Question added',
     description: h('span', {}, `Type: ${question.type}, Format: ${question.subType}`)
@@ -50,20 +52,17 @@ const removeQuestion = (id) => {
   const updated = form.values.questions.filter(q => q.id !== id)
   form.setFieldValue('questions', updated)
   nextTick(() => {
-    toast({
-      title: 'Question removed',
-      variant: 'destructive'
-    })
+    toast({ title: 'Question removed', variant: 'destructive' })
   })
 }
 
 const moveQuestion = (id, direction) => {
-  const index = form.values.questions.findIndex(q => q.id === id)
-  const to = index + direction
-  if (index < 0 || to < 0 || to >= form.values.questions.length) return
+  const idx = form.values.questions.findIndex(q => q.id === id)
+  const newIdx = direction === 'up' ? idx - 1 : idx + 1
+  if (newIdx < 0 || newIdx >= form.values.questions.length) return
   const updated = [...form.values.questions]
-  const [moved] = updated.splice(index, 1)
-  updated.splice(to, 0, moved)
+  const [moved] = updated.splice(idx, 1)
+  updated.splice(newIdx, 0, moved)
   form.setFieldValue('questions', updated)
 }
 
@@ -94,23 +93,33 @@ const onSubmit = async () => {
     </DialogTrigger>
 
     <DialogContent class="sm:max-w-xl bg-background">
+      <DialogTitle class="sr-only">Create Form</DialogTitle>
+      <DialogDescription class="sr-only">Create a new survey form</DialogDescription>
+
       <form @submit.prevent="onSubmit" class="space-y-6">
         <div>
-          <Input v-model="form.values.title" placeholder="Form title"
-                 class="text-2xl font-bold text-heading border-none outline-none shadow-none focus-visible:ring-0 px-0" />
-          <Input v-model="form.values.description" placeholder="Add a short description here"
-                 class="text-sm text-muted placeholder:text-muted border-none outline-none shadow-none focus-visible:ring-0 px-0" />
+          <Input
+              v-model="form.values.title"
+              placeholder="Form title"
+              class="text-2xl font-bold text-heading border-none outline-none shadow-none focus-visible:ring-0 px-0"
+          />
+          <Input
+              v-model="form.values.description"
+              placeholder="Add a short description here"
+              class="text-sm text-muted placeholder:text-muted border-none outline-none shadow-none focus-visible:ring-0 px-0"
+          />
         </div>
 
         <div class="max-h-[40vh] overflow-y-auto pr-2 space-y-4" v-auto-animate>
           <QuestionItem
-              v-for="q in form.values.questions"
+              v-for="(q, i) in form.values.questions"
               :key="q.id"
               :question="q"
-              :is-first="form.values.questions[0].id === q.id"
-              :is-last="form.values.questions[form.values.questions.length - 1].id === q.id"
-              @remove="removeQuestion"
-              @move="moveQuestion"
+              :is-first="i === 0"
+              :is-last="i === form.values.questions.length - 1"
+              @remove="() => removeQuestion(q.id)"
+              @move-up="() => moveQuestion(q.id, 'up')"
+              @move-down="() => moveQuestion(q.id, 'down')"
           />
         </div>
 
