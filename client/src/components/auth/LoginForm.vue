@@ -4,18 +4,17 @@ import { useForm } from 'vee-validate'
 import { z } from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
 import { vAutoAnimate } from '@formkit/auto-animate/vue'
-
-import { useAuth } from '@/stores/auth'
-import { toast } from '@/components/ui/toast'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { useAuth } from '@/stores/auth.js'
+import { toast } from '@/components/ui/toast/index.js'
+import { Input } from '@/components/ui/input/index.js'
+import { Button } from '@/components/ui/button/index.js'
 import {
   FormField,
   FormItem,
   FormLabel,
   FormControl,
   FormMessage,
-} from '@/components/ui/form'
+} from '@/components/ui/form/index.js'
 
 const auth = useAuth()
 
@@ -30,7 +29,6 @@ const form = useForm({
 })
 
 const onSubmit = form.handleSubmit(async (values) => {
-  console.log('✅ Login values:', values)
   try {
     await auth.login(values.email, values.password)
     toast({
@@ -38,7 +36,6 @@ const onSubmit = form.handleSubmit(async (values) => {
       description: h('span', {}, `Bienvenue ${values.email}`),
     })
   } catch (err) {
-    console.error('❌ Login failed:', err)
     toast({
       title: 'Erreur',
       description: 'Email ou mot de passe incorrect',
@@ -49,18 +46,17 @@ const onSubmit = form.handleSubmit(async (values) => {
 </script>
 
 <template>
-  <!-- ❗ Form native HTML tag obligatoire ici -->
-  <form class="space-y-6 w-full max-w-md" @submit.prevent="onSubmit">
+  <form class="space-y-6 w-full max-w-sm" @submit.prevent="onSubmit">
     <div>
-      <h1 class="text-2xl font-bold">Sign in</h1>
-      <p class="text-sm text-muted-foreground">Log in to your account to continue.</p>
+      <h1 class="text-2xl font-bold text-heading">Sign in</h1>
+      <p class="text-sm text-muted">Log in to your account to continue.</p>
     </div>
 
     <FormField name="email" v-slot="{ componentField }">
       <FormItem v-auto-animate>
         <FormLabel>Email</FormLabel>
         <FormControl>
-          <Input type="email" placeholder="m@example.com" v-bind="componentField" />
+          <Input type="email" placeholder="Email" v-bind="componentField" />
         </FormControl>
         <FormMessage />
       </FormItem>
@@ -68,20 +64,22 @@ const onSubmit = form.handleSubmit(async (values) => {
 
     <FormField name="password" v-slot="{ componentField }">
       <FormItem v-auto-animate>
-        <FormLabel>Password</FormLabel>
+        <div class="flex justify-between items-center">
+          <FormLabel>Password</FormLabel>
+          <a href="#" class="text-sm text-link hover:text-link-hover hover:underline">Forgot password?</a>
+        </div>
         <FormControl>
-          <Input type="password" placeholder="********" v-bind="componentField" />
+          <Input type="password" placeholder="Password" v-bind="componentField" />
         </FormControl>
         <FormMessage />
       </FormItem>
     </FormField>
 
-    <!-- ❗ type="submit" obligatoire ici -->
-    <Button type="submit" class="w-full">Sign in</Button>
+    <Button type="submit" class="w-full bg-primary text-white">Sign in</Button>
 
-    <div class="text-center text-sm">
+    <div class="text-center text-sm text-muted-foreground">
       Don't have an account?
-      <a href="/register" class="underline">Sign up</a>
+      <a href="/register" class="text-link hover:text-link-hover underline">Sign up</a>
     </div>
   </form>
 </template>

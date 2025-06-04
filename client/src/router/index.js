@@ -5,6 +5,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Login from "@/pages/auth/Login.vue";
 import Home from '@/pages/Home.vue'
 import Register from "@/pages/auth/Register.vue";
+import CreateForm from "@/pages/CreateForm.vue";
 
 const routes = [
   {
@@ -22,6 +23,10 @@ const routes = [
   {
     path: '/home',
     component: Home
+  },
+  {
+    path: '/create',
+    component: CreateForm
   }
 ]
 

@@ -3,23 +3,35 @@
 @tailwind utilities;
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    /* Palette Voty */
+    --primary: 244 100% 72%;               /* #7D73FF */
+    --primary-hover: 244 65% 66%;          /* #6E64E8 */
+    --background: 228 33% 98%;             /* #F8F9FC */
+    --surface: 0 0% 100%;                  /* #FFFFFF */
+    --border: 227 20% 89%;                 /* #E3E6ED */
+    --heading: 230 17% 13%;                /* #1C1E29 */
+    --body: 225 14% 33%;                   /* #4B5161 */
+    --muted: 227 20% 70%;                  /* #A0A5B9 */
+    --link: 244 100% 72%;                  /* #7D73FF */
+    --link-hover: 244 65% 66%;             /* #6E64E8 */
+
+    /*--background: 0 0% 100%;*/
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
+    /*--primary: 0 0% 9%;*/
     --primary-foreground: 0 0% 98%;
     --secondary: 0 0% 96.1%;
     --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
+    /*--muted: 0 0% 96.1%;*/
     --muted-foreground: 0 0% 45.1%;
     --accent: 0 0% 96.1%;
     --accent-foreground: 0 0% 9%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
+    /*--border: 0 0% 89.8%;*/
     --input: 0 0% 89.8%;
     --ring: 0 0% 3.9%;
     --chart-1: 12 76% 61%;
