@@ -10,3 +10,15 @@ export const createPoll = async (pollData) => {
     })
     return res.data
 }
+
+export const fetchMyPolls = async () => {
+    const auth = useAuth()
+    const res = await api.get('/polls', {
+        headers: {
+            Authorization: `Bearer ${auth.token}`
+        }
+    })
+    const myPolls = res.data.filter(p => p.creator._id === auth.user._id)
+    return myPolls
+}
+

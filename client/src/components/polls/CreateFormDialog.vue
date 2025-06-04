@@ -13,7 +13,7 @@ import { toTypedSchema } from '@vee-validate/zod'
 import AddQuestionPopover from './AddQuestionPopover.vue'
 import QuestionItem from './QuestionItem.vue'
 import { v4 as uuidv4 } from 'uuid'
-import { createPoll } from '@/stores/poll'
+import { createPoll } from '@/services/poll.js'
 
 const open = ref(false)
 

@@ -1,27 +1,19 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { useAuth } from '@/stores/auth'
-import { useRouter } from 'vue-router'
+import { fetchMyPolls } from '@/services/poll'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardTitle } from '@/components/ui/card'
 import CreateFormDialog from '@/components/polls/CreateFormDialog.vue'
+import { useRouter } from 'vue-router'
 
 const router = useRouter()
-const auth = useAuth()
 const polls = ref([])
 const loading = ref(true)
 
 onMounted(async () => {
   try {
-    const res = await fetch('http://localhost:3000/api/polls', {
-      headers: {
-        Authorization: `Bearer ${auth.token}`,
-      },
-    })
-    const data = await res.json()
-    polls.value = data.filter(poll => poll.creator._id === auth.user.id)
+    polls.value = await fetchMyPolls()
   } catch (e) {
-    console.error('Failed to fetch polls', e)
   } finally {
     loading.value = false
   }

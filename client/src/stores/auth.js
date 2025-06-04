@@ -31,9 +31,12 @@ export const useAuth = defineStore('auth', {
 
         async fetchUser() {
             try {
+                console.log('[auth] Fetching user with token:', this.token)
                 const res = await api.get('/auth/me')
                 this.user = res.data
-            } catch {
+                console.log('[auth] User fetched:', this.user)
+            } catch (e) {
+                console.warn('[auth] Failed to fetch user:', e)
                 this.logout()
             }
         },
