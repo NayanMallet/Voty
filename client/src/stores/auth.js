@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import api from '@/services/axios'
-import router from '@/router'
+import router from '@/router/index.js'
 
 export const useAuth = defineStore('auth', {
     state: () => ({
@@ -18,7 +18,7 @@ export const useAuth = defineStore('auth', {
             this.token = res.data.token
             localStorage.setItem('token', this.token)
             await this.fetchUser()
-            router.push('/dashboard')
+            router.push('/home')
         },
 
         async register(name, email, password) {
@@ -26,7 +26,7 @@ export const useAuth = defineStore('auth', {
             this.token = res.data.token
             localStorage.setItem('token', this.token)
             await this.fetchUser()
-            router.push('/dashboard')
+            router.push('/home')
         },
 
         async fetchUser() {
