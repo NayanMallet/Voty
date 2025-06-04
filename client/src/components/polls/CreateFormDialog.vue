@@ -11,7 +11,8 @@ import { useForm } from 'vee-validate'
 import { z } from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
 import AddQuestionPopover from './AddQuestionPopover.vue'
-import { Trash } from 'lucide-vue-next'
+import QuestionItem from './QuestionItem.vue'
+import { v4 as uuidv4 } from 'uuid'
 
 const open = ref(false)
 
@@ -19,6 +20,7 @@ const formSchema = toTypedSchema(z.object({
   title: z.string().min(1, 'Form title is required'),
   description: z.string().min(1, 'Description is required'),
   questions: z.array(z.object({
+    id: z.string(),
     label: z.string().min(1, 'Question title is required'),
     type: z.string(),
     subType: z.string()
@@ -36,16 +38,16 @@ const form = useForm({
 })
 
 const addQuestion = (question) => {
-  form.setFieldValue('questions', [...form.values.questions, question])
+  const newQuestion = { ...question, id: uuidv4() }
+  form.setFieldValue('questions', [...form.values.questions, newQuestion])
   toast({
     title: 'Question added',
     description: h('span', {}, `Type: ${question.type}, Format: ${question.subType}`)
   })
 }
 
-const removeQuestion = (index) => {
-  const updated = [...form.values.questions]
-  updated.splice(index, 1)
+const removeQuestion = (id) => {
+  const updated = form.values.questions.filter(q => q.id !== id)
   form.setFieldValue('questions', updated)
   nextTick(() => {
     toast({
@@ -55,17 +57,14 @@ const removeQuestion = (index) => {
   })
 }
 
-const getLabel = (type, subType) => {
-  if (type === 'text') {
-    if (subType === 'short') return 'Short answer question'
-    if (subType === 'paragraph') return 'Paragraph answer'
-    if (subType === 'date') return 'Date answer'
-  }
-  if (type === 'multi') {
-    if (subType === 'single') return 'Multiple choice – single answer'
-    if (subType === 'multiple') return 'Multiple choice – multiple answers'
-  }
-  return ''
+const moveQuestion = (id, direction) => {
+  const index = form.values.questions.findIndex(q => q.id === id)
+  const to = index + direction
+  if (index < 0 || to < 0 || to >= form.values.questions.length) return
+  const updated = [...form.values.questions]
+  const [moved] = updated.splice(index, 1)
+  updated.splice(to, 0, moved)
+  form.setFieldValue('questions', updated)
 }
 
 const onSubmit = async () => {
@@ -96,48 +95,25 @@ const onSubmit = async () => {
 
     <DialogContent class="sm:max-w-xl bg-background">
       <form @submit.prevent="onSubmit" class="space-y-6">
-        <!-- Title + description -->
         <div>
-          <Input
-              v-model="form.values.title"
-              placeholder="Form title"
-              class="text-2xl font-bold text-heading border-none outline-none shadow-none focus-visible:ring-0 px-0"
-          />
-          <Input
-              v-model="form.values.description"
-              placeholder="Add a short description here"
-              class="text-sm text-muted placeholder:text-muted border-none outline-none shadow-none focus-visible:ring-0 px-0"
-          />
+          <Input v-model="form.values.title" placeholder="Form title"
+                 class="text-2xl font-bold text-heading border-none outline-none shadow-none focus-visible:ring-0 px-0" />
+          <Input v-model="form.values.description" placeholder="Add a short description here"
+                 class="text-sm text-muted placeholder:text-muted border-none outline-none shadow-none focus-visible:ring-0 px-0" />
         </div>
 
-        <!-- Scrollable questions -->
         <div class="max-h-[40vh] overflow-y-auto pr-2 space-y-4" v-auto-animate>
-          <div
-              v-for="(q, i) in form.values.questions"
-              :key="i"
-              class="border rounded-md p-4 relative"
-          >
-            <div class="flex justify-between items-start gap-2">
-              <Input
-                  v-model="q.label"
-                  placeholder="Question title"
-                  class="border-none shadow-none px-0 text-base font-medium focus-visible:ring-0"
-              />
-              <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  class="text-muted hover:text-destructive"
-                  @click.stop.prevent="removeQuestion(i)"
-              >
-                <Trash class="w-4 h-4" />
-              </Button>
-            </div>
-            <p class="text-xs text-muted mt-1">{{ getLabel(q.type, q.subType) }}</p>
-          </div>
+          <QuestionItem
+              v-for="q in form.values.questions"
+              :key="q.id"
+              :question="q"
+              :is-first="form.values.questions[0].id === q.id"
+              :is-last="form.values.questions[form.values.questions.length - 1].id === q.id"
+              @remove="removeQuestion"
+              @move="moveQuestion"
+          />
         </div>
 
-        <!-- Add Question -->
         <AddQuestionPopover @add="addQuestion" />
 
         <DialogFooter>
