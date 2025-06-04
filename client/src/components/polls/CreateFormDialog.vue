@@ -14,6 +14,8 @@ import AddQuestionPopover from './AddQuestionPopover.vue'
 import QuestionItem from './QuestionItem.vue'
 import { v4 as uuidv4 } from 'uuid'
 import { createPoll } from '@/services/poll.js'
+import { usePolls } from '@/stores/polls'
+const polls = usePolls()
 
 const open = ref(false)
 
@@ -97,8 +99,10 @@ const onSubmit = async () => {
         options: q.subType === 'single' || q.subType === 'multiple' ? [] : undefined
       }))
     }
+    console.log('[CreateFormDialog] Payload:', JSON.stringify(payload, null, 2))
+    const poll = await createPoll(payload)
+    polls.addPoll(poll)
 
-    await createPoll(payload)
 
     toast({
       title: 'Form successfully created',

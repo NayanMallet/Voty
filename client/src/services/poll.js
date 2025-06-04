@@ -8,17 +8,17 @@ export const createPoll = async (pollData) => {
             Authorization: `Bearer ${auth.token}`
         }
     })
-    return res.data
+    return res.data.poll
 }
 
-export const fetchMyPolls = async () => {
-    const auth = useAuth()
-    const res = await api.get('/polls', {
-        headers: {
-            Authorization: `Bearer ${auth.token}`
-        }
-    })
-    const myPolls = res.data.filter(p => p.creator._id === auth.user._id)
-    return myPolls
-}
+// export const fetchMyPolls = async () => {
+//     const auth = useAuth()
+//     const res = await api.get('/polls', {
+//         headers: {
+//             Authorization: `Bearer ${auth.token}`
+//         }
+//     })
+//     const myPolls = res.data.filter(p => p.creator._id === auth.user._id)
+//     return myPolls
+// }
 
