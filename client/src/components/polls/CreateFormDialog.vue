@@ -55,6 +55,19 @@ const removeQuestion = (index) => {
   })
 }
 
+const getLabel = (type, subType) => {
+  if (type === 'text') {
+    if (subType === 'short') return 'Short answer question'
+    if (subType === 'paragraph') return 'Paragraph answer'
+    if (subType === 'date') return 'Date answer'
+  }
+  if (type === 'multi') {
+    if (subType === 'single') return 'Multiple choice – single answer'
+    if (subType === 'multiple') return 'Multiple choice – multiple answers'
+  }
+  return ''
+}
+
 const onSubmit = async () => {
   const isValid = await form.validate()
   if (!isValid) {
@@ -82,7 +95,8 @@ const onSubmit = async () => {
     </DialogTrigger>
 
     <DialogContent class="sm:max-w-xl bg-background">
-      <form @submit.prevent="onSubmit" class="space-y-6 max-h-[80vh] overflow-y-auto pr-2">
+      <form @submit.prevent="onSubmit" class="space-y-6">
+        <!-- Title + description -->
         <div>
           <Input
               v-model="form.values.title"
@@ -96,7 +110,8 @@ const onSubmit = async () => {
           />
         </div>
 
-        <div v-auto-animate class="space-y-4">
+        <!-- Scrollable questions -->
+        <div class="max-h-[40vh] overflow-y-auto pr-2 space-y-4" v-auto-animate>
           <div
               v-for="(q, i) in form.values.questions"
               :key="i"
@@ -118,12 +133,11 @@ const onSubmit = async () => {
                 <Trash class="w-4 h-4" />
               </Button>
             </div>
-            <p class="text-xs text-muted mt-1">
-              {{ q.type === 'text' ? 'Short answer question' : 'Multiple choice question' }}
-            </p>
+            <p class="text-xs text-muted mt-1">{{ getLabel(q.type, q.subType) }}</p>
           </div>
         </div>
 
+        <!-- Add Question -->
         <AddQuestionPopover @add="addQuestion" />
 
         <DialogFooter>
