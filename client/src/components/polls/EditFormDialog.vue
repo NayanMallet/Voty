@@ -1,5 +1,5 @@
 <script setup>
-import { ref, h, nextTick } from 'vue'
+import { ref, h, watch, nextTick } from 'vue'
 import {
   Dialog, DialogTrigger, DialogContent, DialogFooter, DialogTitle, DialogDescription
 } from '@/components/ui/dialog'
@@ -12,11 +12,16 @@ import { z } from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
 import AddQuestionPopover from './AddQuestionPopover.vue'
 import QuestionItem from './QuestionItem.vue'
-import { v4 as uuidv4 } from 'uuid'
-import { createPoll } from '@/services/poll.js'
 import { usePolls } from '@/stores/polls'
-const polls = usePolls()
+import api from '@/services/axios'
 
+const props = defineProps({
+  poll: Object
+})
+
+const emit = defineEmits(['updated'])
+
+const polls = usePolls()
 const open = ref(false)
 
 const formSchema = toTypedSchema(z.object({
@@ -33,23 +38,27 @@ const formSchema = toTypedSchema(z.object({
 const form = useForm({
   validationSchema: formSchema,
   initialValues: {
-    title: 'Untitled Form',
+    title: '',
     description: '',
     questions: []
   },
   validateOnInput: true
 })
 
-const addQuestion = (question) => {
-  form.setFieldValue('questions', [
-    ...form.values.questions,
-    { ...question, id: uuidv4() }
-  ])
-  toast({
-    title: 'Question added',
-    description: h('span', {}, `Type: ${question.type}, Format: ${question.subType}`)
-  })
-}
+watch(open, (val) => {
+  if (val && props.poll) {
+    form.setValues({
+      title: props.poll.name,
+      description: props.poll.description,
+      questions: props.poll.questions.map((q, i) => ({
+        id: String(i),
+        label: q.title,
+        type: q.type === 'open' ? 'text' : 'multi',
+        subType: q.type === 'open' ? 'short' : 'single' // adapt logic as needed
+      }))
+    })
+  }
+})
 
 const removeQuestion = (id) => {
   const updated = form.values.questions.filter(q => q.id !== id)
@@ -99,20 +108,20 @@ const onSubmit = async () => {
         options: q.subType === 'single' || q.subType === 'multiple' ? [] : undefined
       }))
     }
-    await polls.createPoll(payload)
+
+    await api.put(`/polls/${props.poll._id}`, payload)
     await polls.fetchPolls()
 
-
     toast({
-      title: 'Form successfully created',
-      description: 'Your form has been saved.'
+      title: 'Poll updated',
+      description: 'Changes have been saved.'
     })
 
-    form.resetForm()
+    emit('updated')
     open.value = false
   } catch (err) {
     toast({
-      title: 'Submission failed',
+      title: 'Update failed',
       description: err.message || 'An error occurred.',
       variant: 'destructive'
     })
@@ -123,12 +132,12 @@ const onSubmit = async () => {
 <template>
   <Dialog v-model:open="open">
     <DialogTrigger as-child>
-      <Button variant="default">Create a form</Button>
+      <Button variant="ghost" size="sm">Éditer</Button>
     </DialogTrigger>
 
     <DialogContent class="sm:max-w-xl bg-background">
-      <DialogTitle class="sr-only">Create Form</DialogTitle>
-      <DialogDescription class="sr-only">Create a new survey form</DialogDescription>
+      <DialogTitle>Edit Form</DialogTitle>
+      <DialogDescription>Modify your survey form</DialogDescription>
 
       <form @submit.prevent="onSubmit" class="space-y-6">
         <div>
@@ -136,14 +145,14 @@ const onSubmit = async () => {
               :modelValue="form.values.title"
               @update:modelValue="val => form.setFieldValue('title', val)"
               placeholder="Form title"
-              class="text-2xl font-bold text-heading border-none outline-none shadow-none focus-visible:ring-0 px-0"
+              class="text-2xl font-bold border-none shadow-none focus-visible:ring-0 px-0"
           />
 
           <Input
               :modelValue="form.values.description"
               @update:modelValue="val => form.setFieldValue('description', val)"
-              placeholder="Add a short description here"
-              class="text-sm text-muted placeholder:text-muted border-none outline-none shadow-none focus-visible:ring-0 px-0"
+              placeholder="Short description"
+              class="text-sm text-muted placeholder:text-muted border-none shadow-none focus-visible:ring-0 px-0"
           />
         </div>
 
@@ -161,11 +170,11 @@ const onSubmit = async () => {
           />
         </div>
 
-        <AddQuestionPopover @add="addQuestion" />
+        <AddQuestionPopover @add="q => form.setFieldValue('questions', [...form.values.questions, q])" />
 
         <DialogFooter>
-          <Button type="submit">Submit</Button>
-          <Button type="button" variant="secondary" @click="open = false">Close</Button>
+          <Button type="submit">Save</Button>
+          <Button type="button" variant="secondary" @click="open = false">Cancel</Button>
         </DialogFooter>
       </form>
     </DialogContent>
