@@ -14,8 +14,8 @@ import AddQuestionPopover from './AddQuestionPopover.vue'
 import QuestionItem from './QuestionItem.vue'
 import { v4 as uuidv4 } from 'uuid'
 import { usePolls } from '@/stores/polls'
-const polls = usePolls()
 
+const polls = usePolls()
 const open = ref(false)
 
 const formSchema = toTypedSchema(z.object({
@@ -24,9 +24,12 @@ const formSchema = toTypedSchema(z.object({
   questions: z.array(z.object({
     id: z.string(),
     label: z.string().min(1, 'Question title is required'),
-    type: z.string(),
-    subType: z.string()
-  })).min(1, 'At least one question required')
+    type: z.string(), // 'text' ou 'multi'
+    subType: z.string(), // 'short', 'paragraph', 'single', 'multiple'
+    options: z.array(z.object({
+      label: z.string().min(1, 'Option text is required')
+    })).optional()
+  })).min(1, 'At least one question is required')
 }))
 
 const form = useForm({
@@ -40,10 +43,18 @@ const form = useForm({
 })
 
 const addQuestion = (question) => {
-  form.setFieldValue('questions', [
-    ...form.values.questions,
-    { ...question, id: uuidv4() }
-  ])
+  const newQuestion = {
+    ...structuredClone(question),
+    id: uuidv4(),
+    options: question.subType === 'single' || question.subType === 'multiple'
+        ? [{ label: '' }]
+        : undefined
+  }
+
+  const current = JSON.parse(JSON.stringify(form.values.questions))
+  current.push(newQuestion)
+  form.setFieldValue('questions', current)
+
   toast({
     title: 'Question added',
     description: h('span', {}, `Type: ${question.type}, Format: ${question.subType}`)
@@ -51,7 +62,7 @@ const addQuestion = (question) => {
 }
 
 const removeQuestion = (id) => {
-  const updated = form.values.questions.filter(q => q.id !== id)
+  const updated = JSON.parse(JSON.stringify(form.values.questions)).filter(q => q.id !== id)
   form.setFieldValue('questions', updated)
   nextTick(() => {
     toast({ title: 'Question removed', variant: 'destructive' })
@@ -59,18 +70,25 @@ const removeQuestion = (id) => {
 }
 
 const moveQuestion = (id, direction) => {
-  const idx = form.values.questions.findIndex(q => q.id === id)
-  const newIdx = direction === 'up' ? idx - 1 : idx + 1
-  if (newIdx < 0 || newIdx >= form.values.questions.length) return
-  const updated = [...form.values.questions]
-  const [moved] = updated.splice(idx, 1)
-  updated.splice(newIdx, 0, moved)
-  form.setFieldValue('questions', updated)
+  const current = JSON.parse(JSON.stringify(form.values.questions))
+  const index = current.findIndex(q => q.id === id)
+  const newIndex = direction === 'up' ? index - 1 : index + 1
+  if (newIndex < 0 || newIndex >= current.length) return
+  const [moved] = current.splice(index, 1)
+  current.splice(newIndex, 0, moved)
+  form.setFieldValue('questions', current)
 }
 
 const updateLabel = (id, newLabel) => {
-  const updated = form.values.questions.map(q =>
+  const updated = JSON.parse(JSON.stringify(form.values.questions)).map(q =>
       q.id === id ? { ...q, label: newLabel } : q
+  )
+  form.setFieldValue('questions', updated)
+}
+
+const updateOptions = (id, newOptions) => {
+  const updated = JSON.parse(JSON.stringify(form.values.questions)).map(q =>
+      q.id === id ? { ...q, options: [...newOptions] } : q
   )
   form.setFieldValue('questions', updated)
 }
@@ -92,15 +110,13 @@ const onSubmit = async () => {
       description: form.values.description,
       questions: form.values.questions.map(q => ({
         title: q.label,
-        type: q.subType === 'short' || q.subType === 'paragraph' || q.subType === 'date'
-            ? 'open'
-            : 'multiple_choice',
-        options: q.subType === 'single' || q.subType === 'multiple' ? [] : undefined
+        type: ['short', 'paragraph', 'date'].includes(q.subType) ? 'open' : 'multiple_choice',
+        options: q.options
       }))
     }
+
     await polls.createPoll(payload)
     await polls.fetchPolls()
-
 
     toast({
       title: 'Form successfully created',
@@ -122,7 +138,7 @@ const onSubmit = async () => {
 <template>
   <Dialog v-model:open="open">
     <DialogTrigger as-child>
-      <slot></slot>
+      <slot />
     </DialogTrigger>
 
     <DialogContent class="sm:max-w-xl bg-background">
@@ -156,7 +172,8 @@ const onSubmit = async () => {
               @remove="() => removeQuestion(q.id)"
               @move-up="() => moveQuestion(q.id, 'up')"
               @move-down="() => moveQuestion(q.id, 'down')"
-              @update:label="(val) => updateLabel(q.id, val)"
+              @update:label="val => updateLabel(q.id, val)"
+              @update:options="opts => updateOptions(q.id, opts)"
           />
         </div>
 
