@@ -46,7 +46,7 @@ const addQuestion = (question) => {
   const newQuestion = {
     ...structuredClone(question),
     id: uuidv4(),
-    options: question.subType === 'single' || question.subType === 'multiple'
+    options: ['single', 'multiple'].includes(question.subType)
         ? [{ label: '' }]
         : undefined
   }
@@ -111,7 +111,9 @@ const onSubmit = async () => {
       questions: form.values.questions.map(q => ({
         title: q.label,
         type: ['short', 'paragraph', 'date'].includes(q.subType) ? 'open' : 'multiple_choice',
-        options: q.options
+        options: ['single', 'multiple'].includes(q.subType)
+            ? q.options.map(opt => opt.label.trim()) // ✅ On extrait les labels
+            : undefined
       }))
     }
 
