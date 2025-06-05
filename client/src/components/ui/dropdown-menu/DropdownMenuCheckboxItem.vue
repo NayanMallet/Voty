@@ -1,12 +1,12 @@
 <script setup>
-import { cn } from '@/lib/utils';
+import { reactiveOmit } from '@vueuse/core';
 import { Check } from 'lucide-vue-next';
 import {
   DropdownMenuCheckboxItem,
   DropdownMenuItemIndicator,
   useForwardPropsEmits,
 } from 'reka-ui';
-import { computed } from 'vue';
+import { cn } from '@/lib/utils';
 
 const props = defineProps({
   modelValue: { type: [Boolean, String], required: false },
@@ -18,11 +18,7 @@ const props = defineProps({
 });
 const emits = defineEmits(['select', 'update:modelValue']);
 
-const delegatedProps = computed(() => {
-  const { class: _, ...delegated } = props;
-
-  return delegated;
-});
+const delegatedProps = reactiveOmit(props, 'class');
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>

@@ -1,12 +1,12 @@
 <script setup>
-import { cn } from '@/lib/utils';
+import { reactiveOmit } from '@vueuse/core';
 import { Circle } from 'lucide-vue-next';
 import {
   DropdownMenuItemIndicator,
   DropdownMenuRadioItem,
   useForwardPropsEmits,
 } from 'reka-ui';
-import { computed } from 'vue';
+import { cn } from '@/lib/utils';
 
 const props = defineProps({
   value: { type: String, required: true },
@@ -19,11 +19,7 @@ const props = defineProps({
 
 const emits = defineEmits(['select']);
 
-const delegatedProps = computed(() => {
-  const { class: _, ...delegated } = props;
-
-  return delegated;
-});
+const delegatedProps = reactiveOmit(props, 'class');
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>

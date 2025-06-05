@@ -1,7 +1,7 @@
 <script setup>
-import { cn } from '@/lib/utils';
+import { reactiveOmit } from '@vueuse/core';
 import { DropdownMenuSubContent, useForwardPropsEmits } from 'reka-ui';
-import { computed } from 'vue';
+import { cn } from '@/lib/utils';
 
 const props = defineProps({
   forceMount: { type: Boolean, required: false },
@@ -33,11 +33,7 @@ const emits = defineEmits([
   'closeAutoFocus',
 ]);
 
-const delegatedProps = computed(() => {
-  const { class: _, ...delegated } = props;
-
-  return delegated;
-});
+const delegatedProps = reactiveOmit(props, 'class');
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
