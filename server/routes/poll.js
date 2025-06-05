@@ -7,7 +7,7 @@ import {
     submitResponse,
     getResponsesByPoll,
     updatePoll,
-    deletePoll, updateResponse, getPollStats
+    deletePoll, updateResponse, getPollStats, deleteResponse
 } from '../controllers/pollController.js'
 
 const router = express.Router()
@@ -33,11 +33,17 @@ router.post('/:id/responses', auth, submitResponse)
 // GET responses to a poll (only creator can access)
 router.get('/:id/responses', auth, getResponsesByPoll)
 
+// DELETE: delete a response (auth, only author)
+router.delete('/:id/responses/:responseId', auth, deleteResponse)
+
+
 // PUT: update a response (auth, only author)
 router.put('/:id/responses/:responseId', auth, updateResponse)
 
 // GET stats for a poll
 router.get('/:id/stats', auth, getPollStats)
+
+
 
 
 export default router

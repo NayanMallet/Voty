@@ -5,10 +5,18 @@ import { useAuth } from '@/stores/auth'
 export const usePolls = defineStore('polls', {
     state: () => ({
         all: [],
-        loading: false
+        selected: null,
+        loading: false,
+        stats: null
     }),
 
     actions: {
+        selectPoll(poll) {
+            this.selected = poll
+            this.stats = null
+            if (poll?._id) this.getPollStats(poll._id)
+        },
+
         async fetchPolls() {
             const auth = useAuth()
             this.loading = true
@@ -51,6 +59,36 @@ export const usePolls = defineStore('polls', {
                 headers: { Authorization: `Bearer ${auth.token}` }
             })
             this.all = this.all.filter(p => p._id !== id)
+        },
+
+        async getPollStats(pollId) {
+            const auth = useAuth()
+            try {
+                const res = await api.get(`/polls/${pollId}/stats`, {
+                    headers: { Authorization: `Bearer ${auth.token}` }
+                })
+                this.stats = res.data
+                return res.data
+            } catch (err) {
+                console.error('[polls] Failed to fetch stats', err)
+                throw err
+            }
+        },
+
+        async deleteResponse(pollId, responseId) {
+            const auth = useAuth()
+            try {
+                await api.delete(`/polls/${pollId}/responses/${responseId}`, {
+                    headers: { Authorization: `Bearer ${auth.token}` }
+                })
+
+                // Refresh stats après suppression
+                await this.getPollStats(pollId)
+            } catch (err) {
+                console.error('[polls] Failed to delete response', err)
+                throw err
+            }
         }
+
     }
 })

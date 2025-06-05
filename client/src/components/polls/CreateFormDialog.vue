@@ -13,7 +13,6 @@ import { toTypedSchema } from '@vee-validate/zod'
 import AddQuestionPopover from './AddQuestionPopover.vue'
 import QuestionItem from './QuestionItem.vue'
 import { v4 as uuidv4 } from 'uuid'
-import { createPoll } from '@/services/poll.js'
 import { usePolls } from '@/stores/polls'
 const polls = usePolls()
 
@@ -123,7 +122,7 @@ const onSubmit = async () => {
 <template>
   <Dialog v-model:open="open">
     <DialogTrigger as-child>
-      <Button variant="default">Create a form</Button>
+      <slot></slot>
     </DialogTrigger>
 
     <DialogContent class="sm:max-w-xl bg-background">

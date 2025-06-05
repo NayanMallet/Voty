@@ -180,43 +180,103 @@ export const getPollStats = async (req, res) => {
         if (poll.creator.toString() !== userId)
             return res.status(403).json({ message: 'Not authorized' });
 
-        const responses = await Response.find({ poll_id: pollId });
+        const responses = await Response.find({ poll_id: pollId }).populate('user_id', 'name email');
 
-        const stats = {
-            totalResponses: responses.length,
-            questions: {}
-        };
+        const statsPerQuestion = poll.questions.map(q => {
+            const base = {
+                _id: q._id,
+                title: q.title,
+                type: q.type,
+                total: 0,
+                stats: [],
+                topAnswers: [],
+                responses: []
+            };
 
-        for (const question of poll.questions) {
-            if (question.type === 'multiple_choice') {
-                stats.questions[question._id] = {
-                    title: question.title,
-                    type: question.type,
-                    options: Object.fromEntries(
-                        question.options.map(opt => [opt, 0])
-                    )
-                };
-            }
-        }
+            if (q.type === 'multiple_choice') {
+                const counts = Object.fromEntries(q.options.map(opt => [opt, 0]));
 
-        for (const response of responses) {
-            for (const answer of response.answers) {
-                const stat = stats.questions[answer.question_id];
-                if (stat && Array.isArray(answer.answer)) {
-                    for (const option of answer.answer) {
-                        if (stat.options[option] !== undefined) {
-                            stat.options[option] += 1;
+                for (const resp of responses) {
+                    const answerObj = resp.answers.find(a => a.question_id.equals(q._id));
+                    if (answerObj && Array.isArray(answerObj.answer)) {
+                        for (const opt of answerObj.answer) {
+                            if (counts[opt] !== undefined) {
+                                counts[opt] += 1;
+                            }
                         }
                     }
                 }
-            }
-        }
 
-        res.json(stats);
+                const total = Object.values(counts).reduce((a, b) => a + b, 0);
+
+                return {
+                    ...base,
+                    total,
+                    stats: Object.entries(counts).map(([option, count]) => ({ option, count }))
+                };
+            }
+
+            // OPEN QUESTIONS
+            const answerMap = new Map();
+            const detailed = [];
+
+            for (const resp of responses) {
+                const answerObj = resp.answers.find(a => a.question_id.equals(q._id));
+                if (!answerObj) continue;
+
+                const answer = String(answerObj.answer).trim();
+                if (!answer) continue;
+
+                detailed.push({
+                    user: resp.user_id,
+                    answer
+                });
+
+                answerMap.set(answer, (answerMap.get(answer) || 0) + 1);
+            }
+
+            return {
+                ...base,
+                topAnswers: [...answerMap.entries()]
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 5)
+                    .map(([answer]) => answer),
+                responses: detailed
+            };
+        });
+
+        res.json({
+            totalResponses: responses.length,
+            questions: statsPerQuestion
+        });
     } catch (err) {
         console.error('Poll stats error:', err.message);
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+export const deleteResponse = async (req, res) => {
+    try {
+        const { id: pollId, responseId } = req.params
+        const userId = req.user.id
+
+        const poll = await Poll.findById(pollId)
+        if (!poll) return res.status(404).json({ message: 'Poll not found' })
+
+        if (poll.creator.toString() !== userId) {
+            return res.status(403).json({ message: 'Not authorized' })
+        }
+
+        const deleted = await Response.findByIdAndDelete(responseId)
+        if (!deleted) return res.status(404).json({ message: 'Response not found' })
+
+        res.json({ message: 'Response deleted' })
+    } catch (err) {
+        console.error('Delete response error:', err.message)
+        res.status(500).json({ message: 'Server error' })
+    }
+}
+
+
 
 
