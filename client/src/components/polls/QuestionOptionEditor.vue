@@ -14,11 +14,6 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const listRef = ref(null)
-onMounted(() => {
-  if (listRef.value && typeof vAutoAnimate === 'function') {
-    vAutoAnimate()(listRef.value)
-  }
-})
 
 const localOptions = ref([])
 
@@ -71,7 +66,8 @@ function removeOption(index) {
 
 <template>
   <div class="space-y-3">
-    <div ref="listRef" class="space-y-2">
+
+    <div ref="listRef" class="space-y-2" v-auto-animate>
       <div
           v-for="(option, i) in localOptions"
           :key="i"
