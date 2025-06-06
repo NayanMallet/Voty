@@ -14,6 +14,7 @@ import AddQuestionPopover from './AddQuestionPopover.vue'
 import QuestionItem from './QuestionItem.vue'
 import { v4 as uuidv4 } from 'uuid'
 import { usePolls } from '@/stores/polls'
+import {FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form/index.js";
 
 const polls = usePolls()
 const open = ref(false)
@@ -145,19 +146,35 @@ const onSubmit = async () => {
 
       <form @submit.prevent="onSubmit" class="space-y-6">
         <div>
-          <Input
-              :modelValue="form.values.title"
-              @update:modelValue="val => form.setFieldValue('title', val)"
-              placeholder="Form title"
-              class="text-2xl font-bold text-heading border-none outline-none shadow-none focus-visible:ring-0 px-0"
-          />
+          <FormField name="title" v-slot="{ componentField }">
+            <FormItem v-auto-animate>
+              <FormControl>
+                <Input
+                    :modelValue="form.values.title"
+                    @update:modelValue="val => form.setFieldValue('title', val)"
+                    placeholder="Form title"
+                    class="text-2xl font-bold text-heading border-none outline-none shadow-none focus-visible:ring-0 px-0"
+                    v-bind="componentField"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
-          <Input
-              :modelValue="form.values.description"
-              @update:modelValue="val => form.setFieldValue('description', val)"
-              placeholder="Add a short description here"
-              class="text-sm text-muted placeholder:text-muted border-none outline-none shadow-none focus-visible:ring-0 px-0"
-          />
+          <FormField name="description" v-slot="{ componentField }">
+            <FormItem v-auto-animate>
+              <FormControl>
+                <Input
+                    :modelValue="form.values.description"
+                    @update:modelValue="val => form.setFieldValue('description', val)"
+                    placeholder="Add a short description here"
+                    class="text-sm text-muted placeholder:text-muted border-none outline-none shadow-none focus-visible:ring-0 px-0"
+                    v-bind="componentField"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
         </div>
 
         <div class="max-h-[40vh] overflow-y-auto pr-2 space-y-4" v-auto-animate>
