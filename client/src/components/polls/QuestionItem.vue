@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ArrowUp, ArrowDown, Trash2 } from 'lucide-vue-next'
@@ -21,6 +21,17 @@ const emit = defineEmits([
 
 const localLabel = ref(props.question.label)
 watch(localLabel, val => emit('update:label', val))
+
+const typeLabel = computed(() => {
+  switch (props.question.subType) {
+    case 'short': return 'Open-ended – short answer'
+    case 'paragraph': return 'Open-ended – paragraph'
+    case 'date': return 'Open-ended – date'
+    case 'single': return 'Multiple choice – one answer'
+    case 'multiple': return 'Multiple choice – multiple answers'
+    default: return ''
+  }
+})
 </script>
 
 <template>
@@ -32,37 +43,22 @@ watch(localLabel, val => emit('update:label', val))
           class="text-base font-medium"
       />
       <div class="flex items-center gap-1">
-        <Button
-            size="icon"
-            variant="ghost"
-            :disabled="isFirst"
-            @click="emit('move-up')"
-            class="hover:text-primary"
-        >
+        <Button size="icon" variant="ghost" :disabled="isFirst" @click="emit('move-up')" class="hover:text-primary">
           <ArrowUp class="w-4 h-4" />
         </Button>
-        <Button
-            size="icon"
-            variant="ghost"
-            :disabled="isLast"
-            @click="emit('move-down')"
-            class="hover:text-primary"
-        >
+        <Button size="icon" variant="ghost" :disabled="isLast" @click="emit('move-down')" class="hover:text-primary">
           <ArrowDown class="w-4 h-4" />
         </Button>
-        <Button
-            size="icon"
-            variant="ghost"
-            @click="emit('remove')"
-            class="hover:text-destructive"
-        >
+        <Button size="icon" variant="ghost" @click="emit('remove')" class="hover:text-destructive">
           <Trash2 class="w-4 h-4" />
         </Button>
       </div>
     </div>
 
+    <p class="text-sm text-muted-foreground font-medium">{{ typeLabel }}</p>
+
     <QuestionOptionEditor
-        v-if="question.subType === 'single' || question.subType === 'multiple'"
+        v-if="['single', 'multiple'].includes(question.subType)"
         :modelValue="question.options"
         :type="question.subType"
         @update:modelValue="opts => emit('update:options', opts)"

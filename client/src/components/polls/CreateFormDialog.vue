@@ -44,16 +44,12 @@ const form = useForm({
 
 const addQuestion = (question) => {
   const newQuestion = {
-    ...structuredClone(question),
+    ...question,
     id: uuidv4(),
-    options: ['single', 'multiple'].includes(question.subType)
-        ? [{ label: '' }]
-        : undefined
+    options: ['single', 'multiple'].includes(question.subType) ? [{ label: '' }] : undefined
   }
 
-  const current = JSON.parse(JSON.stringify(form.values.questions))
-  current.push(newQuestion)
-  form.setFieldValue('questions', current)
+  form.setFieldValue('questions', [...form.values.questions, newQuestion])
 
   toast({
     title: 'Question added',
@@ -62,7 +58,7 @@ const addQuestion = (question) => {
 }
 
 const removeQuestion = (id) => {
-  const updated = JSON.parse(JSON.stringify(form.values.questions)).filter(q => q.id !== id)
+  const updated = form.values.questions.filter(q => q.id !== id)
   form.setFieldValue('questions', updated)
   nextTick(() => {
     toast({ title: 'Question removed', variant: 'destructive' })
@@ -70,7 +66,7 @@ const removeQuestion = (id) => {
 }
 
 const moveQuestion = (id, direction) => {
-  const current = JSON.parse(JSON.stringify(form.values.questions))
+  const current = [...form.values.questions]
   const index = current.findIndex(q => q.id === id)
   const newIndex = direction === 'up' ? index - 1 : index + 1
   if (newIndex < 0 || newIndex >= current.length) return
@@ -80,14 +76,14 @@ const moveQuestion = (id, direction) => {
 }
 
 const updateLabel = (id, newLabel) => {
-  const updated = JSON.parse(JSON.stringify(form.values.questions)).map(q =>
+  const updated = form.values.questions.map(q =>
       q.id === id ? { ...q, label: newLabel } : q
   )
   form.setFieldValue('questions', updated)
 }
 
 const updateOptions = (id, newOptions) => {
-  const updated = JSON.parse(JSON.stringify(form.values.questions)).map(q =>
+  const updated = form.values.questions.map(q =>
       q.id === id ? { ...q, options: [...newOptions] } : q
   )
   form.setFieldValue('questions', updated)
@@ -112,7 +108,7 @@ const onSubmit = async () => {
         title: q.label,
         type: ['short', 'paragraph', 'date'].includes(q.subType) ? 'open' : 'multiple_choice',
         options: ['single', 'multiple'].includes(q.subType)
-            ? q.options.map(opt => opt.label.trim()) // ✅ On extrait les labels
+            ? q.options.map(opt => opt.label.trim())
             : undefined
       }))
     }

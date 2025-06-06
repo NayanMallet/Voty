@@ -71,10 +71,6 @@ function removeOption(index) {
 
 <template>
   <div class="space-y-3">
-    <p class="text-sm font-semibold text-muted-foreground">
-      {{ type === 'single' ? 'Multiple choice – one answer' : 'Multiple choice – multiple answers' }}
-    </p>
-
     <div ref="listRef" class="space-y-2">
       <div
           v-for="(option, i) in localOptions"
