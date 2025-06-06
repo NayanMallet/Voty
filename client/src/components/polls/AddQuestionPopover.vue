@@ -37,7 +37,7 @@ function addQuestion() {
   emit('add', {
     type: type.value,
     subType: subType.value,
-    label: 'New question'
+    label: ''
   })
   popoverOpen.value = false
 }

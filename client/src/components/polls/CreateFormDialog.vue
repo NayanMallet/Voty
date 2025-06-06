@@ -19,6 +19,8 @@ import {FormControl, FormField, FormItem, FormMessage} from "@/components/ui/for
 const polls = usePolls()
 const open = ref(false)
 
+// TODO: Set-up form validation schema using Zod from questions & options (w/ toast messages)
+
 const formSchema = toTypedSchema(z.object({
   title: z.string().min(1, 'Form title is required'),
   description: z.string().min(1, 'Description is required'),
