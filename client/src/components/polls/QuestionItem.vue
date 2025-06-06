@@ -32,13 +32,30 @@ watch(localLabel, val => emit('update:label', val))
           class="text-base font-medium"
       />
       <div class="flex items-center gap-1">
-        <Button size="icon" variant="ghost" :disabled="isFirst" @click="emit('move-up')">
+        <Button
+            size="icon"
+            variant="ghost"
+            :disabled="isFirst"
+            @click="emit('move-up')"
+            class="hover:text-primary"
+        >
           <ArrowUp class="w-4 h-4" />
         </Button>
-        <Button size="icon" variant="ghost" :disabled="isLast" @click="emit('move-down')">
+        <Button
+            size="icon"
+            variant="ghost"
+            :disabled="isLast"
+            @click="emit('move-down')"
+            class="hover:text-primary"
+        >
           <ArrowDown class="w-4 h-4" />
         </Button>
-        <Button size="icon" variant="ghost" @click="emit('remove')">
+        <Button
+            size="icon"
+            variant="ghost"
+            @click="emit('remove')"
+            class="hover:text-destructive"
+        >
           <Trash2 class="w-4 h-4" />
         </Button>
       </div>
