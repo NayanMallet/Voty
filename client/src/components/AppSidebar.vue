@@ -22,7 +22,6 @@ import { usePolls } from '@/stores/polls'
 import { useAuth } from '@/stores/auth'
 import { vAutoAnimate } from '@formkit/auto-animate/vue'
 import CreateFormDialog from '@/components/polls/CreateFormDialog.vue'
-import { Button } from '@/components/ui/button'
 
 const auth = useAuth()
 const polls = usePolls()
@@ -126,14 +125,14 @@ const { setOpen } = useSidebar()
           </div>
           <Label class="flex items-center gap-2 text-sm text-body">
             <span>Closed</span>
-            <Switch class="shadow-none" />
+            <Switch class="shadow-none" disabled />
           </Label>
         </div>
 
         <SidebarInput
             v-model="search"
             placeholder="Type to search..."
-            class="placeholder:text-muted"
+            class="placeholder:text-muted focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         />
       </SidebarHeader>
 
