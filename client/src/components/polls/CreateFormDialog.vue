@@ -35,7 +35,7 @@ const formSchema = toTypedSchema(z.object({
 const form = useForm({
   validationSchema: formSchema,
   initialValues: {
-    title: 'Untitled Form',
+    title: '',
     description: '',
     questions: []
   },
