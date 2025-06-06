@@ -1,5 +1,5 @@
 <script setup>
-import { ArchiveX, Command, File, Inbox, Send, Trash2 } from 'lucide-vue-next'
+import { ArchiveX, Command, File, FilePlus, Send, Trash2 } from 'lucide-vue-next'
 import { h, onMounted, ref, computed } from 'vue'
 import NavUser from '@/components/NavUser.vue'
 import { Label } from '@/components/ui/label'
@@ -140,14 +140,19 @@ const { setOpen } = useSidebar()
       <SidebarContent class="gap-0">
         <CreateFormDialog>
           <a
-              class="group cursor-pointer flex flex-row items-center justify-center gap-2 whitespace-nowrap border-b p-4 text-sm leading-tight last:border-b-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              class="
+              flex flex-row items-center justify-center gap-2 whitespace-nowrap border-b border-border p-4 text-sm leading-tight last:border-b-0
+              hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer
+              active:bg-primary/10 active:text-primary
+              "
           >
-            <File class="size-4 stroke-body group-hover:stroke-primary" />
-            <span class="font-medium text-body group-hover:text-primary">
-              Create Form
-            </span>
+            <div class="flex items-center gap-2">
+              <FilePlus class="size-4"/>
+              <span class="font-medium">Create Form</span>
+            </div>
           </a>
         </CreateFormDialog>
+
 
         <SidebarGroup class="px-0 pt-0">
           <SidebarGroupContent v-auto-animate>
