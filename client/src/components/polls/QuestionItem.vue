@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ArrowUp, ArrowDown, Trash2 } from 'lucide-vue-next'
@@ -19,9 +19,6 @@ const emit = defineEmits([
   'update:options'
 ])
 
-const localLabel = ref(props.question.label)
-watch(localLabel, val => emit('update:label', val))
-
 const typeLabel = computed(() => {
   switch (props.question.subType) {
     case 'short': return 'Open-ended – short answer'
@@ -38,7 +35,8 @@ const typeLabel = computed(() => {
   <div class="rounded-lg border p-4 space-y-4">
     <div class="flex justify-between items-start gap-2">
       <Input
-          v-model="localLabel"
+          :modelValue="question.label"
+          @update:modelValue="val => emit('update:label', val)"
           placeholder="Question text"
           class="text-base font-medium"
       />
@@ -49,7 +47,7 @@ const typeLabel = computed(() => {
         <Button size="icon" variant="ghost" :disabled="isLast" @click="emit('move-down')" class="hover:text-primary">
           <ArrowDown class="w-4 h-4" />
         </Button>
-        <Button size="icon" variant="ghost" @click="emit('remove')" class="hover:text-destructive">
+        <Button size="icon" variant="ghost" @click.stop.prevent="emit('remove')" class="hover:text-destructive">
           <Trash2 class="w-4 h-4" />
         </Button>
       </div>

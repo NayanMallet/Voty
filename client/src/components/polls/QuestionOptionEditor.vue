@@ -1,39 +1,33 @@
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch } from 'vue'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { X, Plus } from 'lucide-vue-next'
 import { vAutoAnimate } from '@formkit/auto-animate/vue'
 import { toast } from '@/components/ui/toast'
+import { v4 as uuidv4 } from 'uuid'
 
 const props = defineProps({
   modelValue: Array,
-  type: String // 'single' ou 'multiple'
+  type: String
 })
 
 const emit = defineEmits(['update:modelValue'])
 
 const listRef = ref(null)
-
 const localOptions = ref([])
 
-// Watch for external changes to modelValue
-watch(() => props.modelValue, (newVal, oldVal) => {
-  // Skip update if the values are deeply equal to avoid recursive updates
+watch(() => props.modelValue, (newVal) => {
   const newValStr = JSON.stringify(newVal)
-  const localOptionsStr = JSON.stringify(localOptions.value)
-
-  if (newValStr !== localOptionsStr) {
+  const localStr = JSON.stringify(localOptions.value)
+  if (newValStr !== localStr) {
     localOptions.value = newVal ? JSON.parse(newValStr) : []
   }
 }, { immediate: true, deep: true })
 
-// Watch for internal changes to localOptions
 watch(localOptions, (val) => {
   const valStr = JSON.stringify(val)
   const modelValueStr = JSON.stringify(props.modelValue)
-
-  // Only emit if values are actually different
   if (valStr !== modelValueStr) {
     emit('update:modelValue', JSON.parse(valStr))
   }
@@ -49,7 +43,7 @@ function addOption() {
     return
   }
 
-  localOptions.value.push({ label: '' })
+  localOptions.value.push({ id: uuidv4(), label: '' })
   toast({ title: 'Option added' })
 }
 
@@ -66,11 +60,10 @@ function removeOption(index) {
 
 <template>
   <div class="space-y-3">
-
     <div ref="listRef" class="space-y-2" v-auto-animate>
       <div
           v-for="(option, i) in localOptions"
-          :key="i"
+          :key="option.id"
           class="flex items-center gap-2"
       >
         <Input
@@ -84,7 +77,7 @@ function removeOption(index) {
             size="icon"
             variant="ghost"
             class="text-muted-foreground hover:text-destructive"
-            @click="removeOption(i)"
+            @click.stop.prevent="removeOption(i)"
             :disabled="localOptions.length === 1"
         >
           <X class="w-4 h-4" />

@@ -14,7 +14,7 @@ import AddQuestionPopover from './AddQuestionPopover.vue'
 import QuestionItem from './QuestionItem.vue'
 import { v4 as uuidv4 } from 'uuid'
 import { usePolls } from '@/stores/polls'
-import {FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form/index.js";
+import {FormControl, FormField, FormItem, FormMessage} from "@/components/ui/form/index.js";
 
 const polls = usePolls()
 const open = ref(false)
@@ -47,7 +47,9 @@ const addQuestion = (question) => {
   const newQuestion = {
     ...question,
     id: uuidv4(),
-    options: ['single', 'multiple'].includes(question.subType) ? [{ label: '' }] : undefined
+    options: ['single', 'multiple'].includes(question.subType)
+        ? [{ id: uuidv4(), label: '' }]
+        : undefined
   }
 
   form.setFieldValue('questions', [...form.values.questions, newQuestion])
