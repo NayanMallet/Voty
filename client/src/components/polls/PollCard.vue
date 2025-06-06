@@ -15,6 +15,12 @@ const props = defineProps({
     }"
   >
     <span class="font-medium">{{ poll.name }}</span>
+    <span
+        v-if="poll.description && poll.description.length > 0"
+        class="line-clamp-2 w-[260px] whitespace-break-spaces text-xs"
+    >
+      {{ poll.description }}
+    </span>
     <span class="line-clamp-2 w-[260px] text-xs text-muted">
       {{ poll.questions.length }} question(s)
     </span>

@@ -1,11 +1,10 @@
 import Poll from '../models/Poll.js'
 import Response from '../models/Response.js'
-import User from '../models/User.js'
 
 export const createPoll = async (req, res) => {
     console.log('→ payload received:', req.body)
     try {
-        const { name, questions } = req.body
+        const { name, description, questions } = req.body
 
         if (!name || !questions || !Array.isArray(questions)) {
             return res.status(400).json({ message: 'Name and questions are required' })
@@ -18,6 +17,7 @@ export const createPoll = async (req, res) => {
 
         const poll = new Poll({
             name,
+            description: description || '', // ✅ description prise en compte
             creator: req.user.id,
             questions,
         })
@@ -31,29 +31,28 @@ export const createPoll = async (req, res) => {
 }
 
 export const updatePoll = async (req, res) => {
-    const { id: pollId } = req.params;
-    const userId = req.user.id;
-    const { name, questions } = req.body;
+    const { id: pollId } = req.params
+    const userId = req.user.id
+    const { name, description, questions } = req.body
 
     try {
-        const poll = await Poll.findById(pollId);
-        if (!poll) return res.status(404).json({ message: 'Poll not found' });
+        const poll = await Poll.findById(pollId)
+        if (!poll) return res.status(404).json({ message: 'Poll not found' })
 
         if (poll.creator.toString() !== userId)
-            return res.status(403).json({ message: 'Not authorized' });
+            return res.status(403).json({ message: 'Not authorized' })
 
-        if (name) poll.name = name;
-        if (questions && Array.isArray(questions)) {
-            poll.questions = questions;
-        }
+        if (name) poll.name = name
+        if (description !== undefined) poll.description = description // ✅ autorise update
+        if (questions && Array.isArray(questions)) poll.questions = questions
 
-        await poll.save();
-        res.json({ message: 'Poll updated', poll });
+        await poll.save()
+        res.json({ message: 'Poll updated', poll })
     } catch (err) {
-        console.error('Update poll error:', err.message);
-        res.status(500).json({ message: 'Server error' });
+        console.error('Update poll error:', err.message)
+        res.status(500).json({ message: 'Server error' })
     }
-};
+}
 
 export const deletePoll = async (req, res) => {
     const { id: pollId } = req.params;
