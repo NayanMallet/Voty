@@ -11,6 +11,7 @@ const pollSchema = new mongoose.Schema({
     creator: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     description: { type: String, default: '' },
     questions: [questionSchema],
+    status: { type: String, enum: ['opened', 'closed', 'deleted'], required: true },
 }, {
     timestamps: true,
 })

@@ -5,6 +5,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { toast } from '@/components/ui/toast'
 import { vAutoAnimate } from '@formkit/auto-animate/vue'
 import { useForm } from 'vee-validate'
@@ -14,21 +15,19 @@ import AddQuestionPopover from './AddQuestionPopover.vue'
 import QuestionItem from './QuestionItem.vue'
 import { v4 as uuidv4 } from 'uuid'
 import { usePolls } from '@/stores/polls'
-import {FormControl, FormField, FormItem, FormMessage} from "@/components/ui/form/index.js";
+import { FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form/index.js'
 
 const polls = usePolls()
 const open = ref(false)
 
-// TODO: Set-up form validation schema using Zod from questions & options (w/ toast messages)
-
 const formSchema = toTypedSchema(z.object({
   title: z.string().min(1, 'Form title is required'),
-  description: z.string().min(1, 'Description is required'),
+  description: z.string().optional(),
   questions: z.array(z.object({
     id: z.string(),
     label: z.string().min(1, 'Question title is required'),
-    type: z.string(), // 'text' ou 'multi'
-    subType: z.string(), // 'short', 'paragraph', 'single', 'multiple'
+    type: z.string(),
+    subType: z.string(),
     options: z.array(z.object({
       label: z.string().min(1, 'Option text is required')
     })).optional()
@@ -96,6 +95,7 @@ const updateOptions = (id, newOptions) => {
 
 const onSubmit = async () => {
   const isValid = await form.validate()
+
   if (!isValid) {
     toast({
       title: 'Form incomplete',
@@ -149,6 +149,13 @@ const onSubmit = async () => {
       <DialogDescription class="sr-only">Create a new survey form</DialogDescription>
 
       <form @submit.prevent="onSubmit" class="space-y-6">
+        <div v-if="form.errors.questions">
+          <Alert variant="destructive">
+            <AlertTitle>Erreur</AlertTitle>
+            <AlertDescription>{{ form.errors.questions }}</AlertDescription>
+          </Alert>
+        </div>
+
         <div>
           <FormField name="title" v-slot="{ componentField }">
             <FormItem v-auto-animate>
@@ -199,7 +206,7 @@ const onSubmit = async () => {
         <AddQuestionPopover @add="addQuestion" />
 
         <DialogFooter>
-          <Button type="submit">Submit</Button>
+          <Button type="submit" :disabled="form.values.questions.length === 0">Submit</Button>
           <Button type="button" variant="secondary" @click="open = false">Close</Button>
         </DialogFooter>
       </form>

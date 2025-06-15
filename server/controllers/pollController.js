@@ -6,30 +6,33 @@ export const createPoll = async (req, res) => {
     try {
         const { name, description, questions } = req.body
 
-        if (!name || !questions || !Array.isArray(questions)) {
-            return res.status(400).json({ message: 'Name and questions are required' })
+        if (!name || !questions || !Array.isArray(questions) || questions.length === 0 ) {
+            return res.status(400).json({ message: 'Name and questions are required !' })
         }
 
-        const existing = await Poll.findOne({ name })
-        if (existing) {
-            return res.status(400).json({ message: 'A poll with that name already exists' })
+        for (const q of questions) {
+            if (!q.title) {
+                return res.status(400).json({ message: 'All questions must have a title!' })
+            }
         }
 
         const poll = new Poll({
             name,
-            description: description || '', // ✅ description prise en compte
+            description: description || '',
             creator: req.user.id,
             questions,
+            status: 'opened',
         })
 
         await poll.save()
-        res.status(201).json({ message: 'Poll created', poll })
+        res.status(201).json({ message: 'Poll created!', poll })
     } catch (err) {
         console.error('Error creating poll:', err.message)
-        res.status(500).json({ message: 'Server error' })
+        res.status(500).json({ message: 'Server error!' })
     }
 }
 
+// TODO: UPDATE POLL
 export const updatePoll = async (req, res) => {
     const { id: pollId } = req.params
     const userId = req.user.id

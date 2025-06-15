@@ -25,6 +25,8 @@ export const usePolls = defineStore('polls', {
                     headers: { Authorization: `Bearer ${auth.token}` }
                 })
                 this.all = res.data.filter(p => p.creator._id === auth.user._id)
+                // TODO: Order by update date
+
             } catch (e) {
                 console.error('[polls] Failed to fetch', e)
             } finally {

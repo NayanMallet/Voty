@@ -137,6 +137,7 @@ const { setOpen } = useSidebar()
       </SidebarHeader>
 
       <SidebarContent class="gap-0">
+
         <CreateFormDialog>
           <a
               class="
@@ -151,7 +152,6 @@ const { setOpen } = useSidebar()
             </div>
           </a>
         </CreateFormDialog>
-
 
         <SidebarGroup class="px-0 pt-0">
           <SidebarGroupContent v-auto-animate>
