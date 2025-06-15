@@ -8,7 +8,8 @@ import QuestionOptionEditor from './QuestionOptionEditor.vue'
 const props = defineProps({
   question: Object,
   isFirst: Boolean,
-  isLast: Boolean
+  isLast: Boolean,
+  isInvalid: Boolean
 })
 
 const emit = defineEmits([
@@ -32,13 +33,13 @@ const typeLabel = computed(() => {
 </script>
 
 <template>
-  <div class="rounded-lg border p-4 space-y-4">
-    <div class="flex justify-between items-start gap-2">
+  <div :class="['rounded-lg border p-4 space-y-4', isInvalid ? 'border-red-500' : 'border-border']">
+  <div class="flex justify-between items-start gap-2">
       <Input
           :modelValue="question.label"
           @update:modelValue="val => emit('update:label', val)"
           placeholder="Question text"
-          class="text-base font-medium"
+          :class="['text-base font-medium', isInvalid && !question.label?.trim() ? 'border-red-500' : '']"
       />
       <div class="flex items-center gap-1">
         <Button size="icon" variant="ghost" :disabled="isFirst" @click="emit('move-up')" class="hover:text-primary">
@@ -61,5 +62,19 @@ const typeLabel = computed(() => {
         :type="question.subType"
         @update:modelValue="opts => emit('update:options', opts)"
     />
+
+    <p
+        v-if="isInvalid && !question.label?.trim()"
+        class="text-xs text-red-500 font-medium"
+    >
+      Question title is required
+    </p>
+
+    <p
+        v-if="isInvalid && ['single', 'multiple'].includes(question.subType) && question.options?.some(opt => !opt.label?.trim())"
+        class="text-xs text-red-500 font-medium"
+    >
+      All options must be filled
+    </p>
   </div>
 </template>

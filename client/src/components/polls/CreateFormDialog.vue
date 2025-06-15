@@ -1,5 +1,5 @@
 <script setup>
-import { ref, h, nextTick } from 'vue'
+import { ref, h, nextTick, onMounted, watch } from 'vue'
 import {
   Dialog, DialogTrigger, DialogContent, DialogFooter, DialogTitle, DialogDescription
 } from '@/components/ui/dialog'
@@ -19,6 +19,12 @@ import { FormControl, FormField, FormItem, FormMessage } from '@/components/ui/f
 
 const polls = usePolls()
 const open = ref(false)
+const questionRefs = ref([])
+const triedSubmit = ref(false)
+
+function setQuestionRef(index, el) {
+  if (el) questionRefs.value[index] = el
+}
 
 const formSchema = toTypedSchema(z.object({
   title: z.string().min(1, 'Form title is required'),
@@ -43,6 +49,21 @@ const form = useForm({
   },
   validateOnInput: true
 })
+
+// 🔁 Si l'utilisateur corrige toutes les erreurs après un submit, on reset triedSubmit
+watch(
+    () => form.values.questions,
+    () => {
+      if (!triedSubmit.value) return
+      const stillInvalid = form.values.questions.some(q =>
+          !q.label?.trim() ||
+          (['single', 'multiple'].includes(q.subType) &&
+              (!q.options || q.options.some(opt => !opt.label?.trim())))
+      )
+      if (!stillInvalid) triedSubmit.value = false
+    },
+    { deep: true }
+)
 
 const addQuestion = (question) => {
   const newQuestion = {
@@ -94,14 +115,24 @@ const updateOptions = (id, newOptions) => {
 }
 
 const onSubmit = async () => {
+  triedSubmit.value = true
   const isValid = await form.validate()
 
-  if (!isValid) {
+  const invalidIndex = form.values.questions.findIndex(q =>
+      !q.label?.trim() ||
+      (['single', 'multiple'].includes(q.subType) &&
+          (!q.options || q.options.some(opt => !opt.label?.trim())))
+  )
+
+  if (!isValid || invalidIndex !== -1) {
     toast({
       title: 'Form incomplete',
-      description: 'Please fill all required fields.',
+      description: 'Please correct the highlighted errors.',
       variant: 'destructive'
     })
+
+    await nextTick()
+    questionRefs.value[invalidIndex]?.$el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     return
   }
 
@@ -192,9 +223,11 @@ const onSubmit = async () => {
           <QuestionItem
               v-for="(q, i) in form.values.questions"
               :key="q.id"
+              :ref="el => setQuestionRef(i, el)"
               :question="q"
               :is-first="i === 0"
               :is-last="i === form.values.questions.length - 1"
+              :is-invalid="triedSubmit && (!q.label?.trim() || (['single', 'multiple'].includes(q.subType) && q.options?.some(opt => !opt.label?.trim())))"
               @remove="() => removeQuestion(q.id)"
               @move-up="() => moveQuestion(q.id, 'up')"
               @move-down="() => moveQuestion(q.id, 'down')"
