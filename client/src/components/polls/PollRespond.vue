@@ -192,13 +192,10 @@ async function submit() {
           </div>
         </div>
 
-        <!-- Open-ended: short vs paragraph -->
         <div v-else>
-          <!-- if you want a single-line input: -->
            <Input v-if="question.subType === 'short'"
               type="text" v-model="answers[index]" placeholder="Votre réponse" class="w-full" />
 
-          <!-- for multi-line paragraphs: -->
           <Textarea
               v-else
               v-model="answers[index]"
