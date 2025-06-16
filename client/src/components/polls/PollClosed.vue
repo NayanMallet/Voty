@@ -1,11 +1,17 @@
 <script setup>
 import { computed } from 'vue'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/stores/auth'
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter
+} from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 
 const props = defineProps({
   poll: {
@@ -19,19 +25,21 @@ const props = defineProps({
 })
 
 const router = useRouter()
-const auth = useAuth()
+const auth   = useAuth()
 
-// Map userResponse.answers → [{ question, value }]
+// On mappe chaque réponse à sa question correspondante
 const answers = computed(() => {
-  if (!props.userResponse?.answers) return []
-  return props.userResponse.answers.map(a => {
-    // on compare en string pour matcher ObjectId/string
+  if (!props.userResponse?.answers || !props.poll?.questions) {
+    return []
+  }
+  return props.userResponse.answers.map(r => {
+    // conversion en string pour comparer correctement ObjectId et string
     const q = props.poll.questions.find(
-        q => q._id.toString() === a.question_id.toString()
+        q => q._id.toString() === r.question_id.toString()
     )
     return {
       question: q,
-      value: a.answer
+      value: r.answer
     }
   })
 })
@@ -44,25 +52,24 @@ const hasSubmitted = computed(() => !!props.userResponse)
   <div class="max-w-xl mx-auto space-y-6">
     <Card class="border-none shadow-sm">
       <CardHeader class="text-center pb-2">
-        <Avatar class="mx-auto h-16 w-16 border shadow-sm mb-2">
-          <AvatarImage
-              :src="`https://unavatar.io/${auth.user.email}?fallback=https://avatar.vercel.sh/${auth.user.name}?size=128`"
-              :alt="auth.user.name"
-          />
-          <AvatarFallback class="text-lg">
-            {{ auth.user.name?.[0] || 'U' }}
-          </AvatarFallback>
-        </Avatar>
-
+        <Avatar
+            :src="`https://unavatar.io/${auth.user?.email}?fallback=https://avatar.vercel.sh/${auth.user?.name}?size=128`"
+            class="mx-auto h-16 w-16 border shadow-sm mb-2"
+        />
         <CardTitle class="text-xl">
           {{ isFormClosed
-            ? "Ce formulaire est fermé"
-            : "Votre réponse a été enregistrée" }}
+            ? 'Ce formulaire est fermé'
+            : hasSubmitted
+                ? 'Votre réponse a été enregistrée'
+                : 'Merci pour votre participation' }}
         </CardTitle>
         <p class="text-sm text-muted-foreground">
-          {{ isFormClosed && !hasSubmitted
-            ? "Ce formulaire n'accepte plus de réponses."
-            : "Merci pour votre participation." }}
+          <template v-if="isFormClosed && !hasSubmitted">
+            Ce formulaire n’accepte plus de réponses.
+          </template>
+          <template v-else-if="hasSubmitted">
+            Vous pouvez fermer cette fenêtre.
+          </template>
         </p>
       </CardHeader>
 
@@ -73,35 +80,37 @@ const hasSubmitted = computed(() => !!props.userResponse)
             class="border rounded-lg p-4 bg-card space-y-2"
         >
           <div class="flex items-center gap-2">
-            <h3 class="font-medium">
-              {{ a.question?.title || "Question inconnue" }}
-            </h3>
+            <h3 class="font-medium">{{ a.question?.title }}</h3>
             <Badge variant="outline" class="ml-auto text-xs">
               Votre réponse
             </Badge>
           </div>
-
-          <div class="text-sm text-muted-foreground">
-            <!-- tableau → plusieurs réponses -->
-            <div v-if="Array.isArray(a.value)" class="space-y-1">
+          <div class="text-sm text-muted-foreground space-y-1">
+            <!-- multiple-choice multiple -->
+            <template v-if="Array.isArray(a.value)">
               <div
-                  v-for="(v, j) in a.value"
+                  v-for="(opt, j) in a.value"
                   :key="j"
                   class="flex items-center gap-2"
               >
-                <span class="block w-2 h-2 bg-primary rounded-full"></span>
-                <span>{{ v }}</span>
+                <span class="w-2 h-2 rounded-full bg-primary"></span>
+                <span>{{ opt }}</span>
               </div>
-            </div>
-            <!-- string → réponse unique -->
-            <span v-else>{{ a.value }}</span>
+            </template>
+            <!-- multiple-choice single ou open question -->
+            <template v-else>
+              <span>{{ a.value }}</span>
+            </template>
           </div>
         </div>
       </CardContent>
 
       <CardFooter class="flex justify-center pt-4">
-        <Button @click="router.push('/home')" variant="outline">
-          Retour à l'accueil
+        <Button
+            @click="router.push('/home')"
+            variant="outline"
+        >
+          Retour à l’accueil
         </Button>
       </CardFooter>
     </Card>

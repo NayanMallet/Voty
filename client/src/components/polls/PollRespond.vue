@@ -15,9 +15,9 @@ import PollCarousel from '@/components/polls/PollCarousel.vue'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Rocket } from 'lucide-vue-next'
 
-const router = useRouter()
-const route  = useRoute()
-const auth   = useAuth()
+const router       = useRouter()
+const route        = useRoute()
+const auth         = useAuth()
 
 const poll         = ref(null)
 const answers      = ref([])
@@ -26,7 +26,7 @@ const currentIndex = ref(0)
 const showSuccess  = ref(false)
 const isSubmitting = ref(false)
 
-// Initialize answers array
+// Initialise answers: pour "single" → string, pour "multiple" → []
 function initAnswers() {
   answers.value = poll.value.questions.map(q =>
       q.type === 'multiple_choice'
@@ -48,7 +48,7 @@ onMounted(async () => {
   loading.value = false
 })
 
-// Computed to check if all questions are answered
+// Vérifie que toutes les questions sont répondues
 const allAnswered = computed(() =>
     !answers.value.some((ans, i) => {
       const q = poll.value.questions[i]
@@ -61,16 +61,16 @@ const allAnswered = computed(() =>
     })
 )
 
-// Manually handle checkboxes for multiple-choice
-function handleCheckboxChange(option, checked, questionIndex) {
-  const arr = [...answers.value[questionIndex]]
+// Handler manuel pour les cases à cocher
+function handleCheckboxChange(option, checked, i) {
+  const arr = Array.isArray(answers.value[i]) ? [...answers.value[i]] : []
   if (checked) {
     if (!arr.includes(option)) arr.push(option)
   } else {
     const idx = arr.indexOf(option)
     if (idx !== -1) arr.splice(idx, 1)
   }
-  answers.value.splice(questionIndex, 1, arr)
+  answers.value.splice(i, 1, arr)
 }
 
 async function submit() {
@@ -90,21 +90,18 @@ async function submit() {
     setTimeout(() => router.push('/home'), 3000)
   } catch {
     toast({ title: 'Erreur d’envoi', variant: 'destructive' })
-  } finally {
     isSubmitting.value = false
   }
 }
 </script>
 
 <template>
-  <div v-if="poll && !loading" v-auto-animate class="w-full">
-    <!-- Success Dialog -->
+  <div v-if="!loading" v-auto-animate class="w-full">
+    <!-- Dialog de succès -->
     <Dialog v-model:open="showSuccess">
-      <DialogContent class="sm:max-w-md text-center">
-        <div class="flex flex-col items-center py-6 space-y-4">
-          <div class="rounded-full bg-primary/10 p-6 animate-bounce">
-            <Rocket class="h-12 w-12 text-primary" />
-          </div>
+      <DialogContent class="text-center">
+        <div class="space-y-4 py-6">
+          <Rocket class="h-12 w-12 text-primary animate-bounce"/>
           <h2 class="text-2xl font-bold">Réponses envoyées !</h2>
           <p>Merci pour votre participation. Redirection…</p>
         </div>
@@ -127,9 +124,9 @@ async function submit() {
       }, 0)"
     >
       <template #default="{ question, index }">
-        <!-- MULTIPLE CHOICE -->
+        <!-- Choix multiple -->
         <div v-if="question.type === 'multiple_choice'" class="space-y-3">
-          <!-- Single → RadioGroup -->
+          <!-- radio single -->
           <RadioGroup
               v-if="question.subType === 'single'"
               v-model="answers[index]"
@@ -137,35 +134,32 @@ async function submit() {
           >
             <div
                 v-for="(opt, i) in question.options"
-                :key="`q${index}-opt${i}`"
+                :key="i"
                 class="flex items-center gap-2"
             >
-              <RadioGroupItem
-                  :value="opt"
-                  :id="`q${index}-opt${i}`"
-              />
+              <RadioGroupItem :value="opt" :id="`q${index}-opt${i}`" />
               <Label :for="`q${index}-opt${i}`">{{ opt }}</Label>
             </div>
           </RadioGroup>
 
-          <!-- Multiple → Checkboxes -->
+          <!-- checkbox multiple -->
           <div v-else class="space-y-2">
             <div
                 v-for="(opt, i) in question.options"
-                :key="`q${index}-opt${i}`"
+                :key="i"
                 class="flex items-center gap-2"
             >
               <Checkbox
-                  :id="`q${index}-opt${i}`"
+                  :id="`q${index}-cb${i}`"
                   :checked="answers[index].includes(opt)"
-                  @checkedChange="(checked) => handleCheckboxChange(opt, checked, index)"
+                  @checkedChange="checked => handleCheckboxChange(opt, checked, index)"
               />
-              <Label :for="`q${index}-opt${i}`">{{ opt }}</Label>
+              <Label :for="`q${index}-cb${i}`">{{ opt }}</Label>
             </div>
           </div>
         </div>
 
-        <!-- OPEN QUESTION -->
+        <!-- question ouverte -->
         <div v-else>
           <Input
               v-if="question.subType === 'short'"
