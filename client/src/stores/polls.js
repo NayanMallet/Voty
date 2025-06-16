@@ -63,6 +63,11 @@ export const usePolls = defineStore('polls', {
             this.all = this.all.filter(p => p._id !== id)
         },
 
+        generatePollUrl(poll) {
+            if (!poll || !poll._id || !poll.creator?.name) return '/'
+            return `/polls/${poll.creator.name}/${poll._id}`
+        },
+
         async getPollStats(pollId) {
             const auth = useAuth()
             try {

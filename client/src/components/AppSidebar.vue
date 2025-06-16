@@ -1,8 +1,7 @@
 <script setup>
-import { ArchiveX, Command, File, FilePlus, Send, Trash2 } from 'lucide-vue-next'
+import { ArchiveX, Command, File, FilePlus, Trash2 } from 'lucide-vue-next'
 import { h, onMounted, ref, computed } from 'vue'
 import NavUser from '@/components/NavUser.vue'
-import { Label } from '@/components/ui/label'
 import {
   Sidebar,
   SidebarContent,
@@ -32,35 +31,25 @@ onMounted(() => {
 })
 
 const filteredPolls = computed(() =>
-    polls.all.filter(poll =>
-        poll.name.toLowerCase().includes(search.value.toLowerCase())
+    polls.all.filter(p =>
+        p.name.toLowerCase().includes(search.value.toLowerCase())
     )
 )
 
-const props = defineProps({
-  side: { type: String, required: false },
-  variant: { type: String, required: false },
-  collapsible: { type: String, required: false, default: 'icon' },
-  class: { type: null, required: false },
-})
+function handleSelectPoll(poll) {
+  polls.selectPoll(poll)
+
+  // Remplace l'URL sans reload
+  const url = `/polls/${auth.user?.name || 'user'}/${poll._id}`
+  window.history.replaceState({}, '', url)
+}
+
 
 const navMain = ref([
-  {
-    title: 'Forms',
-    url: '#',
-    icon: File,
-    isActive: true,
-  },
-  {
-    title: 'Trash',
-    url: '#',
-    icon: Trash2,
-    isActive: false,
-  },
+  { title: 'Forms', icon: File },
+  { title: 'Trash', icon: Trash2 },
 ])
-
 const activeItem = ref(navMain.value[0])
-const { setOpen } = useSidebar()
 </script>
 
 <template>
@@ -137,17 +126,16 @@ const { setOpen } = useSidebar()
       </SidebarHeader>
 
       <SidebarContent class="gap-0">
-
         <CreateFormDialog>
           <a
               class="
               flex flex-row items-center justify-center gap-2 whitespace-nowrap border-b border-border p-4 text-sm leading-tight last:border-b-0
               hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer
               active:bg-primary/10 active:text-primary
-              "
+            "
           >
             <div class="flex items-center gap-2">
-              <FilePlus class="size-4"/>
+              <FilePlus class="size-4" />
               <span class="font-medium">Create Form</span>
             </div>
           </a>

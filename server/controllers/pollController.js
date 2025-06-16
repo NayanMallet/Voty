@@ -145,6 +145,18 @@ export const getResponsesByPoll = async (req, res) => {
     }
 }
 
+export const getUserResponseForPoll = async (req, res) => {
+    const { pollId } = req.params
+    const response = await Response.findOne({
+        poll_id: pollId,
+        user_id: req.user.id
+    })
+
+    if (!response) return res.json(null)
+    res.json(response)
+}
+
+
 export const updateResponse = async (req, res) => {
     try {
         const { id: pollId, responseId } = req.params;
