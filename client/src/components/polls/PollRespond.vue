@@ -73,6 +73,25 @@ const allQuestionsAnswered = computed(() => {
   })
 })
 
+// Calculate the number of answered questions
+const answeredCount = computed(() => {
+  if (!poll.value || !answers.value.length) return 0
+
+  return answers.value.reduce((count, answer, index) => {
+    const question = poll.value.questions[index]
+    if (question.type === 'multiple_choice') {
+      if (answer && Array.isArray(answer) && answer.length > 0) {
+        return count + 1
+      }
+    } else {
+      if (answer && answer.trim() !== '') {
+        return count + 1
+      }
+    }
+    return count
+  }, 0)
+})
+
 const validateCurrentQuestion = () => {
   const q = poll.value.questions[currentIndex.value]
   const answer = answers.value[currentIndex.value]
@@ -84,26 +103,7 @@ const validateCurrentQuestion = () => {
   return answer && answer.trim() !== ''
 }
 
-const goToNext = () => {
-  if (!validateCurrentQuestion()) {
-    invalidQuestions.value = [...invalidQuestions.value, currentIndex.value]
-    toast({
-      title: 'Question requise',
-      description: 'Veuillez répondre à cette question avant de continuer.',
-      variant: 'destructive'
-    })
-    return
-  }
-
-  // Remove from invalid questions if it was previously marked
-  invalidQuestions.value = invalidQuestions.value.filter(i => i !== currentIndex.value)
-
-  if (currentIndex.value === poll.value.questions.length - 1) {
-    submit()
-  } else {
-    currentIndex.value++
-  }
-}
+// This method is no longer used as we rely on carousel arrows for navigation
 
 const submit = async () => {
   // Check all questions
@@ -182,10 +182,12 @@ const handleCheckboxChange = (opt, checked) => {
     </Dialog>
 
     <PollCarousel 
+      ref="carousel"
+      v-model="currentIndex"
       :questions="poll.questions" 
       :isCreator="false"
-      @next="handleIndexChange"
-      @previous="handleIndexChange"
+      :isCurrentQuestionValid="validateCurrentQuestion()"
+      :answeredCount="answeredCount"
     >
       <template #default="{ question, index }">
         <!-- Choix multiple -->
@@ -217,20 +219,14 @@ const handleCheckboxChange = (opt, checked) => {
       </template>
 
       <template #footer="{ index }">
-        <Button
-          v-if="index > 0"
-          variant="outline"
-          @click="currentIndex = index - 1"
-        >
-          Précédent
-        </Button>
-        <div v-else></div>
+        <div></div>
 
         <Button
-          @click="goToNext"
-          :disabled="index === poll.questions.length - 1 && !allQuestionsAnswered || isSubmitting"
+          v-if="index === poll.questions.length - 1"
+          @click="submit"
+          :disabled="!allQuestionsAnswered || isSubmitting"
         >
-          {{ index === poll.questions.length - 1 ? (isSubmitting ? 'Envoi en cours...' : 'Envoyer') : 'Suivant' }}
+          {{ isSubmitting ? 'Envoi en cours...' : 'Envoyer' }}
         </Button>
       </template>
     </PollCarousel>
