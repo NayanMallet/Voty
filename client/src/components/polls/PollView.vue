@@ -97,7 +97,7 @@ const redirectToLogin = () => {
 </script>
 
 <template>
-  <div class="p-4 max-w-2xl mx-auto min-h-[80vh]">
+  <div class="p-4 w-3/4 min-h-[80vh] mx-auto flex flex-col">
     <Transition name="fade" mode="out-in">
       <!-- Loading state -->
       <div v-if="loading" key="loading" class="space-y-6">

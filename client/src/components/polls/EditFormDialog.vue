@@ -24,7 +24,6 @@ const polls = usePolls()
 const auth = useAuth()
 const route = useRoute()
 const router = useRouter()
-const open = ref(true) // Always open in edit mode
 const questionRefs = ref([])
 const triedSubmit = ref(false)
 const loading = ref(true)
@@ -33,8 +32,25 @@ const pollStats = ref(null)
 const isDeleting = ref(false)
 const showDeleteDialog = ref(false)
 
-// Get poll ID from route
-const pollId = computed(() => route.params.pollId)
+const props = defineProps({
+  pollId: {
+    type: String,
+    required: true
+  },
+  open: {
+    type: Boolean,
+    default: false
+  }
+})
+
+const emit = defineEmits(['update:open'])
+
+// Reset showDeleteDialog when the main dialog is closed
+watch(() => props.open, (isOpen) => {
+  if (!isOpen) {
+    showDeleteDialog.value = false
+  }
+})
 
 // Check if a question has responses
 const hasResponses = (questionId) => {
@@ -76,18 +92,18 @@ const form = useForm({
 
 // Load existing poll data
 onMounted(async () => {
-  if (!pollId.value) {
-    router.push('/home')
+  if (!props.pollId) {
+    emit('update:open', false)
     return
   }
 
   try {
     // Fetch poll data
-    const res = await api.get(`/polls/${pollId.value}`)
+    const res = await api.get(`/polls/${props.pollId}`)
     existingPoll.value = res.data
 
     // Fetch poll stats to check for responses
-    const statsRes = await api.get(`/polls/${pollId.value}/stats`, {
+    const statsRes = await api.get(`/polls/${props.pollId}/stats`, {
       headers: { Authorization: `Bearer ${auth.token}` }
     })
     pollStats.value = statsRes.data
@@ -213,32 +229,24 @@ const onSubmit = async () => {
   }
 
   try {
-    // Preserve original questions that have responses
-    const updatedQuestions = []
-
-    // Add existing questions with responses (unchanged)
-    if (existingPoll.value && existingPoll.value.questions) {
-      existingPoll.value.questions.forEach(origQ => {
-        const formQ = form.values.questions.find(q => q._id === origQ._id)
-
-        // If question has responses, keep the original
-        if (formQ && formQ.hasResponses) {
-          updatedQuestions.push(origQ)
+    // Create an array of questions in the order they appear in the form
+    const updatedQuestions = form.values.questions.map(q => {
+      // If the question has responses, use the original question data
+      if (q.hasResponses && existingPoll.value) {
+        const origQ = existingPoll.value.questions.find(origQ => origQ._id === q._id)
+        if (origQ) {
+          return origQ
         }
-      })
-    }
+      }
 
-    // Add new or modified questions without responses
-    form.values.questions.forEach(q => {
-      if (!q.hasResponses) {
-        updatedQuestions.push({
-          _id: q._id, // Include original ID if it exists
-          title: q.label,
-          type: ['short', 'paragraph', 'date'].includes(q.subType) ? 'open' : 'multiple_choice',
-          options: ['single', 'multiple'].includes(q.subType)
-              ? q.options.map(opt => opt.label.trim())
-              : undefined
-        })
+      // Otherwise, create a new question object with the updated data
+      return {
+        _id: q._id, // Include original ID if it exists
+        title: q.label,
+        type: ['short', 'paragraph', 'date'].includes(q.subType) ? 'open' : 'multiple_choice',
+        options: ['single', 'multiple'].includes(q.subType)
+            ? q.options.map(opt => opt.label.trim())
+            : undefined
       }
     })
 
@@ -248,7 +256,7 @@ const onSubmit = async () => {
       questions: updatedQuestions
     }
 
-    await polls.editPoll(pollId.value, payload)
+    await polls.editPoll(props.pollId, payload)
     await polls.fetchPolls()
 
     toast({
@@ -256,7 +264,7 @@ const onSubmit = async () => {
       description: 'Your changes have been saved.'
     })
 
-    router.push('/home')
+    emit('update:open', false)
   } catch (err) {
     toast({
       title: 'Update failed',
@@ -267,31 +275,40 @@ const onSubmit = async () => {
 }
 
 const deletePoll = async () => {
-  if (!pollId.value) return
+  if (!props.pollId) return
 
   isDeleting.value = true
   try {
-    await polls.deletePoll(pollId.value)
+    await polls.deletePoll(props.pollId)
+
+    // Refresh the polls list
+    await polls.fetchPolls()
 
     toast({
       title: 'Form deleted',
       description: 'The form has been permanently deleted.'
     })
 
-    router.push('/home')
+    emit('update:open', false)
+
+    // Redirect to home if not already there
+    if (window.location.pathname !== '/home') {
+      router.push('/home')
+    }
   } catch (err) {
     toast({
       title: 'Deletion failed',
       description: err.message || 'An error occurred.',
       variant: 'destructive'
     })
+  } finally {
     isDeleting.value = false
   }
 }
 </script>
 
 <template>
-  <Dialog v-model:open="open">
+  <Dialog v-model:open="props.open" @update:open="emit('update:open', $event)">
     <DialogContent class="sm:max-w-xl bg-background">
       <DialogTitle>Edit Form</DialogTitle>
       <DialogDescription>Update your form details. Questions with responses cannot be edited.</DialogDescription>
@@ -382,7 +399,7 @@ const deletePoll = async () => {
           </div>
 
           <div class="flex gap-2">
-            <Button type="button" variant="secondary" @click="router.push('/home')">Cancel</Button>
+            <Button type="button" variant="secondary" @click="emit('update:open', false)">Cancel</Button>
             <Button type="submit" :disabled="form.values.questions.length === 0">Save Changes</Button>
           </div>
         </DialogFooter>

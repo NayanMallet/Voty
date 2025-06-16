@@ -46,7 +46,7 @@ const polls = usePolls()
         </Breadcrumb>
       </header>
 
-      <div class="flex flex-1 flex-col gap-4 p-4">
+      <div class="flex flex-1 flex-col gap-4 p-4 h-full justify-center items-center">
         <PollView
             v-if="polls.selected"
             :poll-id="polls.selected._id"

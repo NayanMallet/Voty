@@ -33,10 +33,20 @@ const props = defineProps({
   }
 })
 
+// Initialize answers based on question type
+const initializeAnswers = () => {
+  if (!poll.value || !poll.value.questions) return
+
+  answers.value = poll.value.questions.map(question => {
+    return question.type === 'multiple_choice' ? [] : null
+  })
+  console.log('Initialized answers:', answers.value)
+}
+
 onMounted(async () => {
   if (props.poll) {
     poll.value = props.poll
-    answers.value = Array(poll.value.questions.length).fill(null)
+    initializeAnswers()
     await nextTick()
     loading.value = false
     return
@@ -50,7 +60,7 @@ onMounted(async () => {
   const { pollId } = route.params
   const res = await api.get(`/polls/${pollId}`)
   poll.value = res.data
-  answers.value = Array(poll.value.questions.length).fill(null)
+  initializeAnswers()
   await nextTick()
   loading.value = false
 })
@@ -62,15 +72,32 @@ const handleIndexChange = (index) => {
 
 // Check if all questions are answered
 const allQuestionsAnswered = computed(() => {
-  if (!poll.value || !answers.value.length) return false
+  if (!poll.value || !answers.value.length) {
+    console.log('No poll or answers, returning false')
+    return false
+  }
 
-  return !answers.value.some((answer, index) => {
+  const result = !answers.value.some((answer, index) => {
     const question = poll.value.questions[index]
+    let isUnanswered = false
+
     if (question.type === 'multiple_choice') {
-      return !answer || (Array.isArray(answer) && answer.length === 0)
+      // Check if the answer exists and is an array with elements
+      // Handle both direct arrays and Vue reactive proxies
+      isUnanswered = !answer || 
+                     (Array.isArray(answer) && answer.length === 0) || 
+                     (typeof answer === 'object' && Object.keys(answer).length === 0)
+      console.log(`Question ${index+1} (multiple choice): ${isUnanswered ? 'unanswered' : 'answered'} – ${JSON.stringify(answer)}`)
+    } else {
+      isUnanswered = !answer || !answer.trim()
+      console.log(`Question ${index+1} (text): ${isUnanswered ? 'unanswered' : 'answered'} – ${JSON.stringify(answer)}`)
     }
-    return !answer || !answer.trim()
+
+    return isUnanswered
   })
+
+  console.log('All questions answered?', result)
+  return result
 })
 
 // Calculate the number of answered questions
@@ -106,12 +133,27 @@ const validateCurrentQuestion = () => {
 // This method is no longer used as we rely on carousel arrows for navigation
 
 const submit = async () => {
+  console.log('Submit function called')
+  console.log('Current answers:', answers.value)
+
   // Check all questions
   const unansweredIndex = answers.value.findIndex((a, i) => {
     const q = poll.value.questions[i]
     const isQcm = q.type === 'multiple_choice'
-    if (isQcm) return !a || (Array.isArray(a) && a.length === 0)
-    return !a || !a.trim()
+    let isUnanswered = false
+
+    if (isQcm) {
+      // Check if the answer exists and is an array with elements
+      // Handle both direct arrays and Vue reactive proxies
+      isUnanswered = !a || 
+                    (Array.isArray(a) && a.length === 0) || 
+                    (typeof a === 'object' && Object.keys(a).length === 0)
+    } else {
+      isUnanswered = !a || !a.trim()
+    }
+
+    console.log(`Question ${i+1} (${isQcm ? 'multiple choice' : 'text'}): ${isUnanswered ? 'unanswered' : 'answered'} – ${JSON.stringify(a)}`)
+    return isUnanswered
   })
 
   if (unansweredIndex !== -1) {
@@ -153,15 +195,44 @@ const submit = async () => {
 }
 
 const handleCheckboxChange = (opt, checked) => {
-  const arr = answers.value[currentIndex.value] || []
-  if (checked) {
-    arr.push(opt)
-  } else {
-    const filtered = arr.filter(o => o !== opt)
-    answers.value[currentIndex.value] = filtered
-    return
+  console.log('Checkbox change:', opt, checked)
+
+  // Get the current index
+  const index = currentIndex.value
+
+  // Initialize the answer at this index if it doesn't exist or isn't an array
+  if (!answers.value[index] || !Array.isArray(answers.value[index])) {
+    // Create a new array at this index
+    const newAnswers = [...answers.value]
+    newAnswers[index] = []
+    answers.value = newAnswers
   }
-  answers.value[currentIndex.value] = [...arr]
+
+  // Make a copy of the current answers array to ensure reactivity
+  const newAnswers = [...answers.value]
+
+  // Make a copy of the current answer array
+  let currentAnswer = Array.isArray(newAnswers[index]) ? [...newAnswers[index]] : []
+
+  if (checked) {
+    // Add the option if it's not already in the array
+    if (!currentAnswer.includes(opt)) {
+      currentAnswer.push(opt)
+    }
+  } else {
+    // Remove the option
+    currentAnswer = currentAnswer.filter(o => o !== opt)
+  }
+
+  // Update the answer at this index
+  newAnswers[index] = currentAnswer
+
+  // Update the entire answers array to trigger reactivity
+  answers.value = newAnswers
+
+  console.log('Updated answers:', answers.value)
+  console.log('Current index answer:', answers.value[index])
+  console.log('All questions answered?', allQuestionsAnswered.value)
 }
 </script>
 
@@ -224,10 +295,16 @@ const handleCheckboxChange = (opt, checked) => {
         <Button
           v-if="index === poll.questions.length - 1"
           @click="submit"
-          :disabled="!allQuestionsAnswered || isSubmitting"
+          :disabled="isSubmitting || !allQuestionsAnswered"
         >
           {{ isSubmitting ? 'Envoi en cours...' : 'Envoyer' }}
         </Button>
+        <div v-if="index === poll.questions.length - 1 && !allQuestionsAnswered" class="text-xs text-amber-500 mt-2">
+          Veuillez compléter toutes les questions avant de soumettre.
+        </div>
+        <div v-else-if="index === poll.questions.length - 1" class="text-xs text-green-500 mt-2">
+          Toutes les questions sont complétées. Vous pouvez soumettre le formulaire.
+        </div>
       </template>
     </PollCarousel>
   </div>

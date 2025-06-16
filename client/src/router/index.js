@@ -7,7 +7,6 @@ import Home from '@/pages/Home.vue'
 import Register from "@/pages/auth/Register.vue";
 import CreateForm from "@/pages/CreateForm.vue";
 import PollView from "@/components/polls/PollView.vue";
-import EditFormDialog from "@/components/polls/EditFormDialog.vue";
 
 const routes = [
   {
@@ -35,11 +34,6 @@ const routes = [
     name: 'poll-view',
     component: PollView
   },
-  {
-    path: '/edit/:pollId',
-    name: 'edit-poll',
-    component: EditFormDialog
-  }
 
 ]
 

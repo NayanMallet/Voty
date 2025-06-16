@@ -52,6 +52,14 @@ export const usePolls = defineStore('polls', {
             const updated = res.data.poll
             const index = this.all.findIndex(p => p._id === id)
             if (index !== -1) this.all[index] = updated
+
+            // Update selected poll if it's the one being edited
+            if (this.selected && this.selected._id === id) {
+                this.selected = updated
+                // Refresh stats
+                await this.getPollStats(id)
+            }
+
             return updated
         },
 
@@ -61,6 +69,12 @@ export const usePolls = defineStore('polls', {
                 headers: { Authorization: `Bearer ${auth.token}` }
             })
             this.all = this.all.filter(p => p._id !== id)
+
+            // Clear selected poll if it's the one being deleted
+            if (this.selected && this.selected._id === id) {
+                this.selected = null
+                this.stats = null
+            }
         },
 
         generatePollUrl(poll) {

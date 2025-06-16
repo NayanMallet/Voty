@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import api from '@/services/axios'
 import { ref } from 'vue'
 import { Copy, MoreHorizontal, Check } from 'lucide-vue-next'
+import EditFormDialog from './EditFormDialog.vue'
 
 const props = defineProps({
   poll: Object
@@ -19,6 +20,7 @@ const router = useRouter()
 const isProcessing = ref(false)
 const showCloseDialog = ref(false)
 const isCopied = ref(false)
+const showEditDialog = ref(false)
 
 const closePoll = async () => {
   isProcessing.value = true
@@ -79,7 +81,7 @@ const copyLink = () => {
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="end">
-          <DropdownMenuItem @click="() => router.push(`/edit/${poll._id}`)">
+          <DropdownMenuItem @click="showEditDialog = true">
             Éditer
           </DropdownMenuItem>
 
@@ -121,4 +123,11 @@ const copyLink = () => {
       </DropdownMenu>
     </div>
   </div>
+
+  <!-- Edit Form Dialog -->
+  <EditFormDialog 
+    v-if="showEditDialog" 
+    :poll-id="poll._id" 
+    v-model:open="showEditDialog"
+  />
 </template>
