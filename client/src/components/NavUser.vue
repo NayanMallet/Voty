@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/sidebar'
 
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuth } from '@/stores/auth.js'
 
 const props = defineProps({
@@ -37,6 +38,7 @@ const props = defineProps({
 })
 
 const auth = useAuth()
+const router = useRouter()
 const { isMobile } = useSidebar()
 
 const fullName = computed(() => props.user?.name || 'Utilisateur')
@@ -45,6 +47,10 @@ const initial = computed(() => fullName.value[0] || 'U')
 
 const handleLogout = () => {
   auth.logout()
+}
+
+const navigateToAccount = () => {
+  router.push('/account')
 }
 
 const avatarUrl = computed(() =>
@@ -96,7 +102,7 @@ const avatarUrl = computed(() =>
           </DropdownMenuLabel>
           <DropdownMenuSeparator class="bg-border" />
           <DropdownMenuGroup>
-            <DropdownMenuItem class="text-body hover:text-primary" tag="router-link" to="/account">
+            <DropdownMenuItem class="text-body hover:text-primary cursor-pointer" @click="navigateToAccount">
               <User2 class="mr-2 h-4 w-4 text-muted" />
               Account
             </DropdownMenuItem>
