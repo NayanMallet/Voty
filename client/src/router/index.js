@@ -7,6 +7,7 @@ import Home from '@/pages/Home.vue'
 import Register from "@/pages/auth/Register.vue";
 import CreateForm from "@/pages/CreateForm.vue";
 import PollView from "@/components/polls/PollView.vue";
+import Account from "@/pages/Account.vue";
 
 const routes = [
   {
@@ -34,7 +35,10 @@ const routes = [
     name: 'poll-view',
     component: PollView
   },
-
+  {
+    path: '/account',
+    component: Account
+  },
 ]
 
 const router = createRouter({

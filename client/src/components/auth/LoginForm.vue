@@ -9,6 +9,11 @@ import { toast } from '@/components/ui/toast/index.js'
 import { Input } from '@/components/ui/input/index.js'
 import { Button } from '@/components/ui/button/index.js'
 import {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from '@/components/ui/alert/index.js'
+import {
   FormField,
   FormItem,
   FormLabel,
@@ -17,6 +22,7 @@ import {
 } from '@/components/ui/form/index.js'
 
 const auth = useAuth()
+const errorMessage = ref('')
 
 const loginSchema = toTypedSchema(z.object({
   email: z.string().email({ message: 'Email invalide' }),
@@ -29,6 +35,7 @@ const form = useForm({
 })
 
 const onSubmit = form.handleSubmit(async (values) => {
+  errorMessage.value = '' // Clear previous error
   try {
     await auth.login(values.email, values.password)
     toast({
@@ -36,6 +43,9 @@ const onSubmit = form.handleSubmit(async (values) => {
       description: h('span', {}, `Bienvenue ${values.email}`),
     })
   } catch (err) {
+    console.error('Login error:', err)
+    errorMessage.value = 'Email ou mot de passe incorrect'
+    // Still show toast for accessibility
     toast({
       title: 'Erreur',
       description: 'Email ou mot de passe incorrect',
@@ -51,6 +61,11 @@ const onSubmit = form.handleSubmit(async (values) => {
       <h1 class="text-2xl font-bold text-heading">Sign in</h1>
       <p class="text-sm text-muted">Log in to your account to continue.</p>
     </div>
+
+    <Alert v-if="errorMessage" variant="destructive" class="mb-4">
+      <AlertTitle>Error</AlertTitle>
+      <AlertDescription>{{ errorMessage }}</AlertDescription>
+    </Alert>
 
     <FormField name="email" v-slot="{ componentField }">
       <FormItem v-auto-animate>

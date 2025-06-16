@@ -30,16 +30,22 @@ import {
 } from '@/components/ui/sidebar'
 
 import { computed } from 'vue'
+import { useAuth } from '@/stores/auth.js'
 
 const props = defineProps({
   user: { type: Object, required: true },
 })
 
+const auth = useAuth()
 const { isMobile } = useSidebar()
 
 const fullName = computed(() => props.user?.name || 'Utilisateur')
 const email = computed(() => props.user?.email || 'loading@example.com')
 const initial = computed(() => fullName.value[0] || 'U')
+
+const handleLogout = () => {
+  auth.logout()
+}
 
 const avatarUrl = computed(() =>
     email.value
@@ -90,17 +96,13 @@ const avatarUrl = computed(() =>
           </DropdownMenuLabel>
           <DropdownMenuSeparator class="bg-border" />
           <DropdownMenuGroup>
-            <DropdownMenuItem class="text-body hover:text-primary">
+            <DropdownMenuItem class="text-body hover:text-primary" tag="router-link" to="/account">
               <User2 class="mr-2 h-4 w-4 text-muted" />
               Account
             </DropdownMenuItem>
-            <DropdownMenuItem class="text-body hover:text-primary">
-              <Bell class="mr-2 h-4 w-4 text-muted" />
-              Notifications
-            </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator class="bg-border" />
-          <DropdownMenuItem class="text-body hover:text-destructive">
+          <DropdownMenuItem class="text-body hover:text-destructive" @click="handleLogout">
             <LogOut class="mr-2 h-4 w-4 text-muted" />
             Log out
           </DropdownMenuItem>

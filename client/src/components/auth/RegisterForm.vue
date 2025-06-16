@@ -9,6 +9,11 @@ import { toast } from '@/components/ui/toast/index.js'
 import { Input } from '@/components/ui/input/index.js'
 import { Button } from '@/components/ui/button/index.js'
 import {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from '@/components/ui/alert/index.js'
+import {
   FormField,
   FormItem,
   FormLabel,
@@ -17,6 +22,7 @@ import {
 } from '@/components/ui/form/index.js'
 
 const auth = useAuth()
+const errorMessage = ref('')
 
 const registerSchema = toTypedSchema(z.object({
   name: z.string().min(2, 'Nom trop court'),
@@ -30,6 +36,7 @@ const form = useForm({
 })
 
 const onSubmit = form.handleSubmit(async (values) => {
+  errorMessage.value = '' // Clear previous error
   try {
     await auth.register(values.name, values.email, values.password)
     toast({
@@ -37,9 +44,18 @@ const onSubmit = form.handleSubmit(async (values) => {
       description: h('span', {}, `Bienvenue ${values.name} !`),
     })
   } catch (err) {
+    console.error('Registration error:', err)
+    // Check if the error is because the user already exists
+    if (err.response && err.response.data && err.response.data.message === 'User already exists') {
+      errorMessage.value = 'Un compte avec cet email existe déjà'
+    } else {
+      errorMessage.value = 'Impossible de créer le compte'
+    }
+
+    // Still show toast for accessibility
     toast({
       title: 'Erreur',
-      description: 'Impossible de créer le compte',
+      description: errorMessage.value,
       variant: 'destructive',
     })
   }
@@ -52,6 +68,11 @@ const onSubmit = form.handleSubmit(async (values) => {
       <h1 class="text-2xl font-bold text-heading">Create an account</h1>
       <p class="text-sm text-muted">Let’s get started. Fill in the details below.</p>
     </div>
+
+    <Alert v-if="errorMessage" variant="destructive" class="mb-4">
+      <AlertTitle>Error</AlertTitle>
+      <AlertDescription>{{ errorMessage }}</AlertDescription>
+    </Alert>
 
     <FormField name="name" v-slot="{ componentField }">
       <FormItem v-auto-animate>
