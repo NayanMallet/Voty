@@ -244,6 +244,7 @@ const onSubmit = async () => {
         _id: q._id, // Include original ID if it exists
         title: q.label,
         type: ['short', 'paragraph', 'date'].includes(q.subType) ? 'open' : 'multiple_choice',
+        subType: q.subType,
         options: ['single', 'multiple'].includes(q.subType)
             ? q.options.map(opt => opt.label.trim())
             : undefined

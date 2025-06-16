@@ -143,6 +143,7 @@ const onSubmit = async () => {
       questions: form.values.questions.map(q => ({
         title: q.label,
         type: ['short', 'paragraph', 'date'].includes(q.subType) ? 'open' : 'multiple_choice',
+        subType: q.subType,
         options: ['single', 'multiple'].includes(q.subType)
             ? q.options.map(opt => opt.label.trim())
             : undefined

@@ -3,6 +3,7 @@ import mongoose from 'mongoose'
 const questionSchema = new mongoose.Schema({
     title: { type: String, required: true },
     type: { type: String, enum: ['open', 'multiple_choice'], required: true },
+    subType: { type: String, enum: ['short', 'paragraph', 'date', 'single', 'multiple'] },
     options: [String],
 })
 
