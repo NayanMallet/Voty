@@ -49,7 +49,7 @@ const fetchPoll = async (pollId) => {
     const res = await api.get(`/polls/${pollId}`)
     poll.value = res.data
 
-    const isCreator = poll.value.creator === auth.user._id
+    const isCreator = poll.value.creator && poll.value.creator === auth.user?._id
     if (isCreator) {
       polls.selectPoll(poll.value)
       return
@@ -145,7 +145,7 @@ const redirectToLogin = () => {
           <div :key="poll.status + '_' + !!userResponse">
             <!-- Form creator view - use unified PollStats component -->
             <PollStats
-              v-if="poll.creator === auth.user?._id"
+              v-if="poll.creator && poll.creator === auth.user?._id"
               :poll="poll"
             />
 

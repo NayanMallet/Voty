@@ -24,7 +24,7 @@ export const usePolls = defineStore('polls', {
                 const res = await api.get('/polls', {
                     headers: { Authorization: `Bearer ${auth.token}` }
                 })
-                this.all = res.data.filter(p => p.creator._id === auth.user._id)
+                this.all = res.data.filter(p => p.creator && p.creator._id === auth.user._id)
                 // TODO: Order by update date
 
             } catch (e) {

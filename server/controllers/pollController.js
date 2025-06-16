@@ -32,7 +32,6 @@ export const createPoll = async (req, res) => {
     }
 }
 
-// TODO: UPDATE POLL
 export const updatePoll = async (req, res) => {
     const { id: pollId } = req.params
     const userId = req.user.id
@@ -160,7 +159,6 @@ export const getUserResponseForPoll = async (req, res) => {
     res.json(response)
 }
 
-
 export const updateResponse = async (req, res) => {
     try {
         const { id: pollId, responseId } = req.params;
@@ -216,19 +214,26 @@ export const getPollStats = async (req, res) => {
 
                 for (const resp of responses) {
                     const answerObj = resp.answers.find(a => a.question_id.equals(q._id));
-                    if (answerObj && Array.isArray(answerObj.answer)) {
+                    if (!answerObj) continue;
+
+                    // 1️⃣ Si c'est un array, on boucle (cas “multiple”)
+                    if (Array.isArray(answerObj.answer)) {
                         for (const opt of answerObj.answer) {
-                            if (counts[opt] !== undefined) {
-                                counts[opt] += 1;
-                            }
+                            if (counts[opt] !== undefined) counts[opt]++;
                         }
+                    }
+                    // 2️⃣ Sinon, c’est une string (cas “single” radio) → on incrémente directement
+                    else if (typeof answerObj.answer === 'string') {
+                        const opt = answerObj.answer;
+                        if (counts[opt] !== undefined) counts[opt]++;
                     }
                 }
 
                 const total = Object.values(counts).reduce((a, b) => a + b, 0);
-
                 return {
-                    ...base,
+                    _id: q._id,
+                    title: q.title,
+                    type: q.type,
                     total,
                     stats: Object.entries(counts).map(([option, count]) => ({ option, count }))
                 };

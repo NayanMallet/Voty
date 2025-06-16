@@ -47,5 +47,53 @@ export const useAuth = defineStore('auth', {
             localStorage.removeItem('token')
             router.push('/login')
         },
+
+        async updateName(name) {
+            try {
+                const res = await api.put('/auth/update-name', { name })
+                this.user = { ...this.user, name }
+                return res.data
+            } catch (err) {
+                console.error('[auth] Failed to update name:', err)
+                throw err
+            }
+        },
+
+        async updateEmail(email, password) {
+            try {
+                const res = await api.put('/auth/update-email', { email, password })
+                this.user = { ...this.user, email }
+                return res.data
+            } catch (err) {
+                console.error('[auth] Failed to update email:', err)
+                throw err
+            }
+        },
+
+        async updatePassword(currentPassword, newPassword) {
+            try {
+                const res = await api.put('/auth/update-password', { 
+                    currentPassword, 
+                    newPassword 
+                })
+                return res.data
+            } catch (err) {
+                console.error('[auth] Failed to update password:', err)
+                throw err
+            }
+        },
+
+        async deleteAccount(password) {
+            try {
+                const res = await api.delete('/auth/delete-account', { 
+                    data: { password } 
+                })
+                this.logout()
+                return res.data
+            } catch (err) {
+                console.error('[auth] Failed to delete account:', err)
+                throw err
+            }
+        }
     }
 })

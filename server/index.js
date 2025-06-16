@@ -4,7 +4,6 @@ import connectDB from './config/db.js'
 import authRoutes from './routes/auth.js'
 import protectedRoutes from './routes/protected.js'
 import pollRoutes from './routes/poll.js'
-import userRoutes from './routes/users.js'
 import cors from 'cors'
 
 dotenv.config()
@@ -23,7 +22,6 @@ app.use(cors({
 app.use('/api/auth', authRoutes)
 app.use('/api/protected', protectedRoutes)
 app.use('/api/polls', pollRoutes)
-app.use('/api/users', userRoutes)
 
 
 app.listen(PORT, () => {
