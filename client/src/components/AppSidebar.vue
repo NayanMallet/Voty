@@ -16,6 +16,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import PollCard from '@/components/polls/PollCard.vue'
 import { usePolls } from '@/stores/polls'
 import { useAuth } from '@/stores/auth'
@@ -25,6 +26,7 @@ import CreateFormDialog from '@/components/polls/CreateFormDialog.vue'
 const auth = useAuth()
 const polls = usePolls()
 const search = ref('')
+const showClosed = ref(false)
 
 onMounted(() => {
   polls.fetchPolls()
@@ -32,7 +34,8 @@ onMounted(() => {
 
 const filteredPolls = computed(() =>
     polls.all.filter(p =>
-        p.name.toLowerCase().includes(search.value.toLowerCase())
+        p.name.toLowerCase().includes(search.value.toLowerCase()) &&
+        (showClosed.value ? p.status === 'closed' : p.status === 'opened')
     )
 )
 
@@ -47,7 +50,6 @@ function handleSelectPoll(poll) {
 
 const navMain = ref([
   { title: 'Forms', icon: File },
-  { title: 'Trash', icon: Trash2 },
 ])
 const activeItem = ref(navMain.value[0])
 </script>
@@ -114,7 +116,7 @@ const activeItem = ref(navMain.value[0])
           </div>
           <Label class="flex items-center gap-2 text-sm text-body">
             <span>Closed</span>
-            <Switch class="shadow-none" disabled />
+            <Switch v-model="showClosed" class="shadow-none" />
           </Label>
         </div>
 

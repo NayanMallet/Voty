@@ -36,7 +36,7 @@ export const createPoll = async (req, res) => {
 export const updatePoll = async (req, res) => {
     const { id: pollId } = req.params
     const userId = req.user.id
-    const { name, description, questions } = req.body
+    const { name, description, questions, status } = req.body
 
     try {
         const poll = await Poll.findById(pollId)
@@ -48,6 +48,7 @@ export const updatePoll = async (req, res) => {
         if (name) poll.name = name
         if (description !== undefined) poll.description = description // ✅ autorise update
         if (questions && Array.isArray(questions)) poll.questions = questions
+        if (status) poll.status = status // ✅ handle status update
 
         await poll.save()
         res.json({ message: 'Poll updated', poll })
@@ -78,7 +79,10 @@ export const deletePoll = async (req, res) => {
 
 export const getAllPolls = async (req, res) => {
     try {
-        const polls = await Poll.find().select('-__v').populate('creator', 'name email')
+        const polls = await Poll.find()
+            .select('-__v')
+            .populate('creator', 'name email')
+            .sort({ createdAt: -1 }) // Sort by creation date, newest first
         res.json(polls)
     } catch (err) {
         console.error('Error fetching polls:', err.message)
@@ -290,7 +294,3 @@ export const deleteResponse = async (req, res) => {
         res.status(500).json({ message: 'Server error' })
     }
 }
-
-
-
-

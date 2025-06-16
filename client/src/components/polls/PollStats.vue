@@ -1,10 +1,10 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { usePolls } from '@/stores/polls'
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription, DialogHeader, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { Loader2 } from 'lucide-vue-next'
+import { Loader2, Trash2, AlertCircle } from 'lucide-vue-next'
 import { toast } from '@/components/ui/toast'
 import { Badge } from '@/components/ui/badge'
 import { Avatar } from '@/components/ui/avatar'
@@ -23,19 +23,40 @@ const toggleDialog = (id) => {
   showDetails.value[id] = !showDetails.value[id]
 }
 
+// Confirmation dialog for response deletion
+const showDeleteConfirm = ref(false)
+const responseToDelete = ref(null)
+const questionIdForDelete = ref(null)
+
 // loader local par réponse
 const deleting = ref({})
 
-const deleteAnswer = async (responseId) => {
-  if (!props.poll?._id) return
-  deleting.value[responseId] = true
+const confirmDeleteResponse = (responseId, questionId) => {
+  responseToDelete.value = responseId
+  questionIdForDelete.value = questionId
+  showDeleteConfirm.value = true
+}
+
+const deleteAnswer = async () => {
+  if (!props.poll?._id || !responseToDelete.value) return
+
+  deleting.value[responseToDelete.value] = true
   try {
-    await polls.deleteResponse(props.poll._id, responseId)
-    toast({ title: 'Réponse supprimée' })
+    await polls.deleteResponse(props.poll._id, responseToDelete.value)
+    toast({ 
+      title: 'Réponse supprimée', 
+      description: 'La réponse a été supprimée avec succès.'
+    })
+    showDeleteConfirm.value = false
   } catch (err) {
-    toast({ title: 'Erreur lors de la suppression', variant: 'destructive' })
+    toast({ 
+      title: 'Erreur lors de la suppression', 
+      description: err.message || 'Une erreur est survenue lors de la suppression de la réponse.',
+      variant: 'destructive' 
+    })
   } finally {
-    deleting.value[responseId] = false
+    deleting.value[responseToDelete.value] = false
+    responseToDelete.value = null
   }
 }
 
@@ -123,13 +144,13 @@ const questions = computed(() => stats.value?.questions || [])
                     size="icon"
                     variant="ghost"
                     :disabled="deleting[userResp._id]"
-                    @click="deleteAnswer(userResp._id)"
+                    @click="confirmDeleteResponse(userResp._id, question._id)"
                   >
                     <Loader2
                       v-if="deleting[userResp._id]"
                       class="animate-spin w-4 h-4 text-muted"
                     />
-                    <span v-else>🗑️</span>
+                    <Trash2 v-else class="w-4 h-4 text-destructive" />
                   </Button>
                 </div>
               </div>
@@ -140,4 +161,37 @@ const questions = computed(() => stats.value?.questions || [])
       </template>
     </PollCarousel>
   </div>
+
+  <!-- Confirmation Dialog for Response Deletion -->
+  <Dialog v-model:open="showDeleteConfirm">
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle class="flex items-center gap-2">
+          <AlertCircle class="h-5 w-5 text-destructive" />
+          Supprimer cette réponse
+        </DialogTitle>
+        <DialogDescription>
+          Êtes-vous sûr de vouloir supprimer cette réponse ? Cette action est irréversible.
+        </DialogDescription>
+      </DialogHeader>
+      <DialogFooter class="flex justify-end gap-2 mt-4">
+        <Button variant="outline" @click="showDeleteConfirm = false">
+          Annuler
+        </Button>
+        <Button 
+          variant="destructive" 
+          @click="deleteAnswer"
+          :disabled="!responseToDelete || deleting[responseToDelete]"
+          class="relative"
+        >
+          <span :class="{ 'opacity-0': deleting[responseToDelete] }">
+            Supprimer
+          </span>
+          <span v-if="deleting[responseToDelete]" class="absolute inset-0 flex items-center justify-center">
+            <Loader2 class="animate-spin h-5 w-5" />
+          </span>
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>
