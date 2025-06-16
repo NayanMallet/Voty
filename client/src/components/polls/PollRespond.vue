@@ -10,6 +10,8 @@ import { vAutoAnimate } from '@formkit/auto-animate/vue'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import PollCarousel from '@/components/polls/PollCarousel.vue'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Rocket } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
@@ -21,6 +23,8 @@ const poll = ref(null)
 const loading = ref(true)
 const invalidQuestions = ref([])
 const currentIndex = ref(0)
+const showSuccessDialog = ref(false)
+const isSubmitting = ref(false)
 
 const props = defineProps({
   poll: {
@@ -55,6 +59,19 @@ onMounted(async () => {
 const handleIndexChange = (index) => {
   currentIndex.value = index
 }
+
+// Check if all questions are answered
+const allQuestionsAnswered = computed(() => {
+  if (!poll.value || !answers.value.length) return false
+
+  return !answers.value.some((answer, index) => {
+    const question = poll.value.questions[index]
+    if (question.type === 'multiple_choice') {
+      return !answer || (Array.isArray(answer) && answer.length === 0)
+    }
+    return !answer || !answer.trim()
+  })
+})
 
 const validateCurrentQuestion = () => {
   const q = poll.value.questions[currentIndex.value]
@@ -110,6 +127,7 @@ const submit = async () => {
   }
 
   try {
+    isSubmitting.value = true
     await api.post(`/polls/${poll.value._id}/responses`, {
       answers: poll.value.questions.map((q, i) => ({
         question_id: q._id,
@@ -117,17 +135,20 @@ const submit = async () => {
       }))
     })
 
-    toast({ 
-      title: 'Réponses envoyées',
-      description: 'Merci pour votre participation !'
-    })
-    router.push('/home')
+    // Show success dialog instead of immediately redirecting
+    showSuccessDialog.value = true
+
+    // Redirect after a delay
+    setTimeout(() => {
+      router.push('/home')
+    }, 3000)
   } catch (error) {
     toast({
       title: 'Erreur',
       description: error.response?.data?.message || 'Une erreur est survenue lors de l\'envoi de vos réponses.',
       variant: 'destructive'
     })
+    isSubmitting.value = false
   }
 }
 
@@ -145,7 +166,21 @@ const handleCheckboxChange = (opt, checked) => {
 </script>
 
 <template>
-  <div v-if="poll && !loading" v-auto-animate>
+  <div v-if="poll && !loading" v-auto-animate class="w-full">
+    <!-- Success Dialog -->
+    <Dialog v-model:open="showSuccessDialog">
+      <DialogContent class="sm:max-w-md text-center">
+        <div class="flex flex-col items-center justify-center py-6 space-y-4">
+          <div class="rounded-full bg-primary/10 p-6 animate-bounce">
+            <Rocket class="h-12 w-12 text-primary" />
+          </div>
+          <h2 class="text-2xl font-bold">Réponses envoyées !</h2>
+          <p class="text-muted-foreground">Merci pour votre participation.</p>
+          <p class="text-sm text-muted-foreground">Redirection vers l'accueil...</p>
+        </div>
+      </DialogContent>
+    </Dialog>
+
     <PollCarousel 
       :questions="poll.questions" 
       :isCreator="false"
@@ -193,8 +228,9 @@ const handleCheckboxChange = (opt, checked) => {
 
         <Button
           @click="goToNext"
+          :disabled="index === poll.questions.length - 1 && !allQuestionsAnswered || isSubmitting"
         >
-          {{ index === poll.questions.length - 1 ? 'Envoyer' : 'Suivant' }}
+          {{ index === poll.questions.length - 1 ? (isSubmitting ? 'Envoi en cours...' : 'Envoyer') : 'Suivant' }}
         </Button>
       </template>
     </PollCarousel>

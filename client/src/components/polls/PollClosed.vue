@@ -30,8 +30,9 @@ const hasSubmitted = computed(() => !!props.userResponse)
   <div class="max-w-xl mx-auto space-y-6">
     <Card class="border-none shadow-sm">
       <CardHeader class="text-center pb-2">
+
         <Avatar
-          :src="`https://unavatar.io/${auth.user?.email}`"
+          :src="`https://unavatar.io/${auth.user?.email}?fallback=https://avatar.vercel.sh/${auth.user?.fullName}?size=128${auth.user?.email}`"
           class="mx-auto h-16 w-16 border shadow-sm mb-2"
         />
         <CardTitle class="text-xl">

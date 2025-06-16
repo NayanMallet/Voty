@@ -24,7 +24,7 @@ const deleteResponse = async (id) => {
         class="flex items-center justify-between border rounded-lg p-2"
     >
       <div class="flex items-center gap-2">
-        <Avatar :src="`https://unavatar.io/${r.user?.email}`" class="h-8 w-8" />
+        <Avatar :src="`https://unavatar.io/${r.user?.email}?fallback=https://avatar.vercel.sh/${r.user?.name}?size=128`" class="h-8 w-8" />
         <div>
           <p class="text-sm font-medium">{{ r.user?.name }}</p>
           <p class="text-xs text-muted-foreground">{{ r.user?.email }}</p>

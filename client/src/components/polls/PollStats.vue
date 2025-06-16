@@ -44,7 +44,7 @@ const questions = computed(() => stats.value?.questions || [])
 </script>
 
 <template>
-  <div v-if="poll && stats">
+  <div v-if="poll && stats" class="w-full">
     <PollCarousel 
       :questions="questions" 
       :isCreator="true" 
@@ -107,7 +107,7 @@ const questions = computed(() => stats.value?.questions || [])
               >
                 <div class="flex items-center gap-2">
                   <Avatar
-                    :src="`https://unavatar.io/${userResp.user.email}`"
+                      :src="`https://unavatar.io/${userResp.user?.email}?fallback=https://avatar.vercel.sh/${userResp.user?.name}?size=128`"
                     class="h-8 w-8"
                   />
                   <div>

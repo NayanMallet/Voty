@@ -7,7 +7,7 @@ import { toast } from '@/components/ui/toast'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import api from '@/services/axios'
 import { ref } from 'vue'
-import { Copy, MoreHorizontal } from 'lucide-vue-next'
+import { Copy, MoreHorizontal, Check } from 'lucide-vue-next'
 
 const props = defineProps({
   poll: Object
@@ -18,6 +18,7 @@ const polls = usePolls()
 const router = useRouter()
 const isProcessing = ref(false)
 const showCloseDialog = ref(false)
+const isCopied = ref(false)
 
 const closePoll = async () => {
   isProcessing.value = true
@@ -42,6 +43,10 @@ const closePoll = async () => {
 
 const copyLink = () => {
   emit('copy')
+  isCopied.value = true
+  setTimeout(() => {
+    isCopied.value = false
+  }, 2000) // Show "Copied" for 2 seconds
 }
 </script>
 
@@ -57,12 +62,13 @@ const copyLink = () => {
     <div class="flex items-center gap-2">
       <Button
         variant="outline"
-        size="sm"
+        size="small"
         @click="copyLink"
-        class="flex items-center gap-1"
+        class="flex items-center gap-1 h-9 px-4"
       >
-        <Copy class="h-3.5 w-3.5" />
-        <span class="hidden sm:inline">Copier le lien</span>
+        <Copy v-if="!isCopied" class="h-4 w-4" />
+        <Check v-else class="h-4 w-4" />
+        <span class="hidden sm:inline ml-2">{{ isCopied ? 'Copié' : 'Copier le lien' }}</span>
       </Button>
 
       <DropdownMenu>

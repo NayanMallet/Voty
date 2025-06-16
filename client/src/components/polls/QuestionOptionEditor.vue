@@ -9,7 +9,8 @@ import { v4 as uuidv4 } from 'uuid'
 
 const props = defineProps({
   modelValue: Array,
-  type: String
+  type: String,
+  disabled: Boolean
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -34,6 +35,8 @@ watch(localOptions, (val) => {
 }, { deep: true })
 
 function addOption() {
+  if (props.disabled) return
+
   if (localOptions.value.some(opt => !opt.label.trim())) {
     toast({
       title: 'Option incomplete',
@@ -48,11 +51,12 @@ function addOption() {
 }
 
 function updateOption(index, val) {
+  if (props.disabled) return
   localOptions.value[index].label = val
 }
 
 function removeOption(index) {
-  if (localOptions.value.length === 1) return
+  if (props.disabled || localOptions.value.length === 1) return
   localOptions.value.splice(index, 1)
   toast({ title: 'Option removed', variant: 'destructive' })
 }
@@ -71,6 +75,7 @@ function removeOption(index) {
             @update:modelValue="val => updateOption(i, val)"
             placeholder="Option text"
             class="flex-1"
+            :disabled="disabled"
         />
         <Button
             type="button"
@@ -78,7 +83,7 @@ function removeOption(index) {
             variant="ghost"
             class="text-muted-foreground hover:text-destructive"
             @click.stop.prevent="removeOption(i)"
-            :disabled="localOptions.length === 1"
+            :disabled="localOptions.length === 1 || disabled"
         >
           <X class="w-4 h-4" />
         </Button>
@@ -91,7 +96,7 @@ function removeOption(index) {
         size="sm"
         class="mt-2"
         @click="addOption"
-        :disabled="localOptions.some(opt => !opt.label.trim())"
+        :disabled="localOptions.some(opt => !opt.label.trim()) || disabled"
     >
       <Plus class="w-4 h-4 mr-1" />
       Add Option
