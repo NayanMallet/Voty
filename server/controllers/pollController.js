@@ -246,6 +246,7 @@ export const getPollStats = async (req, res) => {
                 if (!answer) continue;
 
                 detailed.push({
+                    _id: resp._id,
                     user: resp.user_id,
                     answer
                 });
