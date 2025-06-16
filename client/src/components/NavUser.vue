@@ -34,7 +34,7 @@ import { useRouter } from 'vue-router'
 import { useAuth } from '@/stores/auth.js'
 
 const props = defineProps({
-  user: { type: Object, required: true },
+  user: { type: Object, required: false, default: () => ({}) },
 })
 
 const auth = useAuth()

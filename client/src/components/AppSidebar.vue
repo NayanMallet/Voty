@@ -57,7 +57,6 @@ const activeItem = ref(navMain.value[0])
 <template>
   <Sidebar
       class="overflow-hidden [&>[data-sidebar=sidebar]]:flex-row"
-      v-bind="props"
   >
     <!-- Iconic left sidebar -->
     <Sidebar
