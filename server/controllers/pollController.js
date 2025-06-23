@@ -28,6 +28,14 @@ export const createPoll = async (req, res) => {
         res.status(201).json({ message: 'Poll created!', poll })
     } catch (err) {
         console.error('Error creating poll:', err.message)
+
+        // Check for duplicate key error
+        if (err.code === 11000 && err.keyPattern && err.keyPattern.name) {
+            return res.status(400).json({ 
+                message: `A poll with the name "${err.keyValue.name}" already exists. Please use a different name.` 
+            })
+        }
+
         res.status(500).json({ message: 'Server error!' })
     }
 }

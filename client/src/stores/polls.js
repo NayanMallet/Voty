@@ -36,12 +36,21 @@ export const usePolls = defineStore('polls', {
 
         async createPoll(pollData) {
             const auth = useAuth()
-            const res = await api.post('/polls', pollData, {
-                headers: { Authorization: `Bearer ${auth.token}` }
-            })
-            const poll = res.data.poll
-            this.all.unshift(poll)
-            return poll
+            try {
+                const res = await api.post('/polls', pollData, {
+                    headers: { Authorization: `Bearer ${auth.token}` }
+                })
+                const poll = res.data.poll
+                this.all.unshift(poll)
+                return poll
+            } catch (err) {
+                console.error('[polls] Failed to create poll:', err.response?.data?.message || err.message)
+                // Propagate the error message from the server if available
+                if (err.response?.data?.message) {
+                    throw new Error(err.response.data.message)
+                }
+                throw err
+            }
         },
 
         async editPoll(id, updatedData) {
