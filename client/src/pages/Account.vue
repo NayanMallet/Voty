@@ -8,6 +8,8 @@ import { toTypedSchema } from '@vee-validate/zod'
 import { toast } from '@/components/ui/toast/index.js'
 import { X } from 'lucide-vue-next'
 import { vAutoAnimate } from '@formkit/auto-animate/vue'
+import { Button } from '@/components/ui/button/index.js'
+import { Input } from '@/components/ui/input/index.js'
 
 import {
   Alert,
@@ -46,8 +48,6 @@ import {
   FormMessage,
 } from '@/components/ui/form/index.js'
 
-import { Input } from '@/components/ui/input/index.js'
-import { Button } from '@/components/ui/button/index.js'
 import { Separator } from '@/components/ui/separator/index.js'
 
 const router = useRouter()
@@ -109,41 +109,41 @@ const updateName = nameForm.handleSubmit(async (values) => {
 
 // Update Email Form
 const emailSchema = toTypedSchema(z.object({
-  email: z.string().email('Invalid email'),
-  password: z.string().min(1, 'Password is required'),
+  email: z.string().email({ message: 'Email invalide' }),
+  password: z.string().min(6, 'Mot de passe trop court'),
 }))
 
 const emailForm = useForm({
   validationSchema: emailSchema,
   initialValues: {
-    email: user.value?.email || '',
+    email: '',
     password: '',
   },
   validateOnInput: true,
 })
 
-const updateEmail = emailForm.handleSubmit(async (values) => {
+const updateEmail = async (values) => {
+  console.log('Trying to update email with values:', values)
   emailError.value = '' // Clear previous error
   try {
+    console.log('Trying to update email with values:', values)
     await auth.updateEmail(values.email, values.password)
+    console.log('Email updated successfully')
     toast({
-      title: 'Success',
-      description: h('span', {}, `Your email has been updated to ${values.email}`),
+      title: 'Mise à jour réussie',
+      description: h('span', {}, `Votre email a été mis à jour avec succès à ${values.email}`),
     })
-    emailForm.resetForm({
-      values: {
-        email: values.email,
-        password: '',
-      }
-    })
+    // Reset form values
+    values.email = ''
+    values.password = ''
   } catch (err) {
     console.error('Error updating email:', err)
     if (err.response?.data?.message === 'User already exists') {
-      emailError.value = 'This email is already in use'
+      emailError.value = "L'email est déjà utilisé par un autre compte"
     } else if (err.response?.data?.message === 'Invalid credentials') {
-      emailError.value = 'Incorrect password'
+      emailError.value = 'Mot de passe incorrect'
     } else {
-      emailError.value = 'Failed to update email'
+      emailError.value = 'Échec de la mise à jour de l\'email'
     }
     // Show toast for accessibility
     toast({
@@ -152,7 +152,7 @@ const updateEmail = emailForm.handleSubmit(async (values) => {
       variant: 'destructive',
     })
   }
-})
+}
 
 // Update Password Form
 const passwordSchema = toTypedSchema(z.object({
@@ -166,13 +166,20 @@ const passwordSchema = toTypedSchema(z.object({
 
 const passwordForm = useForm({
   validationSchema: passwordSchema,
+  initialValues: {
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  },
   validateOnInput: true,
 })
 
 const updatePassword = passwordForm.handleSubmit(async (values) => {
   passwordError.value = '' // Clear previous error
   try {
+    console.log('Trying to update password with values:', values)
     await auth.updatePassword(values.currentPassword, values.newPassword)
+    console.log('Password updated successfully')
     toast({
       title: 'Success',
       description: h('span', {}, 'Your password has been updated successfully'),
@@ -204,6 +211,10 @@ const deleteSchema = toTypedSchema(z.object({
 
 const deleteForm = useForm({
   validationSchema: deleteSchema,
+  initialValues: {
+    password: '',
+    confirmation: '',
+  },
   validateOnInput: true,
 })
 
@@ -273,7 +284,7 @@ const deleteAccount = deleteForm.handleSubmit(async (values) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form @submit="updateName" class="space-y-6">
+            <form @submit.prevent="updateName" class="space-y-6">
               <Alert v-if="nameError" variant="destructive" class="mb-4">
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{{ nameError }}</AlertDescription>
@@ -316,7 +327,7 @@ const deleteAccount = deleteForm.handleSubmit(async (values) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form @submit="updateEmail" class="space-y-6">
+            <Form :validation-schema="emailSchema" :initial-values="{ email: '', password: '' }" @submit="updateEmail" class="space-y-6">
               <Alert v-if="emailError" variant="destructive" class="mb-4">
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{{ emailError }}</AlertDescription>
@@ -348,7 +359,7 @@ const deleteAccount = deleteForm.handleSubmit(async (values) => {
               </FormField>
 
               <Button type="submit" class="w-full sm:w-auto bg-primary text-white">Update Email</Button>
-            </form>
+            </Form>
           </CardContent>
         </Card>
       </TabsContent>
@@ -363,7 +374,7 @@ const deleteAccount = deleteForm.handleSubmit(async (values) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form @submit="updatePassword" class="space-y-6">
+            <form @submit.prevent="updatePassword" class="space-y-6">
               <Alert v-if="passwordError" variant="destructive" class="mb-4">
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{{ passwordError }}</AlertDescription>
@@ -420,7 +431,7 @@ const deleteAccount = deleteForm.handleSubmit(async (values) => {
             </CardDescription>
           </CardHeader>
           <CardContent class="pt-6">
-            <form @submit="deleteAccount" class="space-y-6">
+            <form @submit.prevent="deleteAccount" class="space-y-6">
               <Alert v-if="deleteError" variant="destructive" class="mb-4">
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{{ deleteError }}</AlertDescription>
