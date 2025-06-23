@@ -87,7 +87,7 @@ const nameForm = useForm({
   validateOnInput: true,
 })
 
-const updateName = nameForm.handleSubmit(async (values) => {
+const updateName = async (values) => {
   nameError.value = '' // Clear previous error
   try {
     await auth.updateName(values.name)
@@ -105,7 +105,7 @@ const updateName = nameForm.handleSubmit(async (values) => {
       variant: 'destructive',
     })
   }
-})
+}
 
 // Update Email Form
 const emailSchema = toTypedSchema(z.object({
@@ -314,7 +314,7 @@ const deleteAccount = async (values) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form @submit.prevent="updateName" class="space-y-6">
+            <Form :validation-schema="nameSchema" :initial-values="{ name: user.name || '' }" @submit="updateName" class="space-y-6">
               <Alert v-if="nameError" variant="destructive" class="mb-4">
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{{ nameError }}</AlertDescription>
@@ -342,7 +342,7 @@ const deleteAccount = async (values) => {
               </FormField>
 
               <Button type="submit" class="w-full sm:w-auto bg-primary text-white">Update Profile</Button>
-            </form>
+            </Form>
           </CardContent>
         </Card>
       </TabsContent>
