@@ -11,7 +11,9 @@ export const register = async (req, res) => {
         user = new User({ name, email, password })
         await user.save()
 
+        // Create payload with user ID
         const payload = { user: { id: user.id } }
+        console.log('Register - Creating token with payload:', payload)
         const token = jwt.sign(payload, process.env.JWT_SECRET, {
             expiresIn: "1d",
         });
@@ -34,7 +36,9 @@ export const login = async (req, res) => {
         const isMatch = await user.comparePassword(password)
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' })
 
+        // Create payload with user ID
         const payload = { user: { id: user.id } }
+        console.log('Login - Creating token with payload:', payload)
         const token = jwt.sign(payload, process.env.JWT_SECRET, {
             expiresIn: "1d",
         });

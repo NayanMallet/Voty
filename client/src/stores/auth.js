@@ -51,7 +51,8 @@ export const useAuth = defineStore('auth', {
         async updateName(name) {
             try {
                 const res = await api.put('/auth/update-name', { name })
-                this.user = { ...this.user, name }
+                console.log('[auth] Updated name:', res.data)
+                await this.fetchUser()
                 return res.data
             } catch (err) {
                 console.error('[auth] Failed to update name:', err)
@@ -62,7 +63,7 @@ export const useAuth = defineStore('auth', {
         async updateEmail(email, password) {
             try {
                 const res = await api.put('/auth/update-email', { email, password })
-                this.user = { ...this.user, email }
+                await this.fetchUser()
                 return res.data
             } catch (err) {
                 console.error('[auth] Failed to update email:', err)
@@ -72,10 +73,8 @@ export const useAuth = defineStore('auth', {
 
         async updatePassword(currentPassword, newPassword) {
             try {
-                const res = await api.put('/auth/update-password', { 
-                    currentPassword, 
-                    newPassword 
-                })
+                const res = await api.put('/auth/update-password', { currentPassword, newPassword })
+                await this.fetchUser()
                 return res.data
             } catch (err) {
                 console.error('[auth] Failed to update password:', err)

@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
 import { toast } from '@/components/ui/toast/index.js'
 import { X } from 'lucide-vue-next'
+import { vAutoAnimate } from '@formkit/auto-animate/vue'
 
 import {
   Alert,
@@ -86,27 +87,21 @@ const nameForm = useForm({
   validateOnInput: true,
 })
 
-// Update form values when user data changes
-watch(() => user.value?.name, (newName) => {
-  if (newName !== undefined) {
-    nameForm.setFieldValue('name', newName)
-  }
-})
-
 const updateName = nameForm.handleSubmit(async (values) => {
-  nameError.value = ''
+  nameError.value = '' // Clear previous error
   try {
     await auth.updateName(values.name)
     toast({
       title: 'Success',
-      description: 'Your name has been updated',
+      description: h('span', {}, `Your name has been updated to ${values.name}`),
     })
   } catch (err) {
     console.error('Error updating name:', err)
     nameError.value = 'Failed to update name'
+    // Show toast for accessibility
     toast({
       title: 'Error',
-      description: 'Failed to update name',
+      description: nameError.value,
       variant: 'destructive',
     })
   }
@@ -127,20 +122,13 @@ const emailForm = useForm({
   validateOnInput: true,
 })
 
-// Update form values when user data changes
-watch(() => user.value?.email, (newEmail) => {
-  if (newEmail !== undefined) {
-    emailForm.setFieldValue('email', newEmail)
-  }
-})
-
 const updateEmail = emailForm.handleSubmit(async (values) => {
-  emailError.value = ''
+  emailError.value = '' // Clear previous error
   try {
     await auth.updateEmail(values.email, values.password)
     toast({
       title: 'Success',
-      description: 'Your email has been updated',
+      description: h('span', {}, `Your email has been updated to ${values.email}`),
     })
     emailForm.resetForm({
       values: {
@@ -157,6 +145,7 @@ const updateEmail = emailForm.handleSubmit(async (values) => {
     } else {
       emailError.value = 'Failed to update email'
     }
+    // Show toast for accessibility
     toast({
       title: 'Error',
       description: emailError.value,
@@ -181,12 +170,12 @@ const passwordForm = useForm({
 })
 
 const updatePassword = passwordForm.handleSubmit(async (values) => {
-  passwordError.value = ''
+  passwordError.value = '' // Clear previous error
   try {
     await auth.updatePassword(values.currentPassword, values.newPassword)
     toast({
       title: 'Success',
-      description: 'Your password has been updated',
+      description: h('span', {}, 'Your password has been updated successfully'),
     })
     passwordForm.resetForm()
   } catch (err) {
@@ -196,6 +185,7 @@ const updatePassword = passwordForm.handleSubmit(async (values) => {
     } else {
       passwordError.value = 'Failed to update password'
     }
+    // Show toast for accessibility
     toast({
       title: 'Error',
       description: passwordError.value,
@@ -218,12 +208,12 @@ const deleteForm = useForm({
 })
 
 const deleteAccount = deleteForm.handleSubmit(async (values) => {
-  deleteError.value = ''
+  deleteError.value = '' // Clear previous error
   try {
     await auth.deleteAccount(values.password)
     toast({
       title: 'Account Deleted',
-      description: 'Your account has been permanently deleted',
+      description: h('span', {}, 'Your account has been permanently deleted'),
     })
     // No need to call auth.logout() as it's already called in the deleteAccount method
   } catch (err) {
@@ -233,6 +223,7 @@ const deleteAccount = deleteForm.handleSubmit(async (values) => {
     } else {
       deleteError.value = 'Failed to delete account'
     }
+    // Show toast for accessibility
     toast({
       title: 'Error',
       description: deleteError.value,
@@ -282,7 +273,7 @@ const deleteAccount = deleteForm.handleSubmit(async (values) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Form @submit="updateName" class="space-y-6">
+            <form @submit="updateName" class="space-y-6">
               <Alert v-if="nameError" variant="destructive" class="mb-4">
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{{ nameError }}</AlertDescription>
@@ -299,18 +290,18 @@ const deleteAccount = deleteForm.handleSubmit(async (values) => {
                 </div>
               </div>
 
-              <FormField name="name" v-slot="{ componentField, errorMessage }">
-                <FormItem>
+              <FormField name="name" v-slot="{ componentField }">
+                <FormItem v-auto-animate>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
                     <Input v-bind="componentField" placeholder="Your name" />
                   </FormControl>
-                  <FormMessage>{{ errorMessage }}</FormMessage>
+                  <FormMessage />
                 </FormItem>
               </FormField>
 
               <Button type="submit" class="w-full sm:w-auto bg-primary text-white">Update Profile</Button>
-            </Form>
+            </form>
           </CardContent>
         </Card>
       </TabsContent>
@@ -325,7 +316,7 @@ const deleteAccount = deleteForm.handleSubmit(async (values) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Form @submit="updateEmail" class="space-y-6">
+            <form @submit="updateEmail" class="space-y-6">
               <Alert v-if="emailError" variant="destructive" class="mb-4">
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{{ emailError }}</AlertDescription>
@@ -336,28 +327,28 @@ const deleteAccount = deleteForm.handleSubmit(async (values) => {
                 <p class="text-muted-foreground">{{ user.email || 'your.email@example.com' }}</p>
               </div>
 
-              <FormField name="email" v-slot="{ componentField, errorMessage }">
-                <FormItem>
+              <FormField name="email" v-slot="{ componentField }">
+                <FormItem v-auto-animate>
                   <FormLabel>New Email</FormLabel>
                   <FormControl>
                     <Input type="email" v-bind="componentField" placeholder="new.email@example.com" />
                   </FormControl>
-                  <FormMessage>{{ errorMessage }}</FormMessage>
+                  <FormMessage />
                 </FormItem>
               </FormField>
 
-              <FormField name="password" v-slot="{ componentField, errorMessage }">
-                <FormItem>
+              <FormField name="password" v-slot="{ componentField }">
+                <FormItem v-auto-animate>
                   <FormLabel>Confirm with Password</FormLabel>
                   <FormControl>
                     <Input type="password" v-bind="componentField" placeholder="Your current password" />
                   </FormControl>
-                  <FormMessage>{{ errorMessage }}</FormMessage>
+                  <FormMessage />
                 </FormItem>
               </FormField>
 
               <Button type="submit" class="w-full sm:w-auto bg-primary text-white">Update Email</Button>
-            </Form>
+            </form>
           </CardContent>
         </Card>
       </TabsContent>
@@ -372,7 +363,7 @@ const deleteAccount = deleteForm.handleSubmit(async (values) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Form @submit="updatePassword" class="space-y-6">
+            <form @submit="updatePassword" class="space-y-6">
               <Alert v-if="passwordError" variant="destructive" class="mb-4">
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{{ passwordError }}</AlertDescription>
@@ -383,38 +374,38 @@ const deleteAccount = deleteForm.handleSubmit(async (values) => {
                 <p class="text-muted-foreground">For your security, we recommend using a strong, unique password that you don't use elsewhere.</p>
               </div>
 
-              <FormField name="currentPassword" v-slot="{ componentField, errorMessage }">
-                <FormItem>
+              <FormField name="currentPassword" v-slot="{ componentField }">
+                <FormItem v-auto-animate>
                   <FormLabel>Current Password</FormLabel>
                   <FormControl>
                     <Input type="password" v-bind="componentField" placeholder="Your current password" />
                   </FormControl>
-                  <FormMessage>{{ errorMessage }}</FormMessage>
+                  <FormMessage />
                 </FormItem>
               </FormField>
 
-              <FormField name="newPassword" v-slot="{ componentField, errorMessage }">
-                <FormItem>
+              <FormField name="newPassword" v-slot="{ componentField }">
+                <FormItem v-auto-animate>
                   <FormLabel>New Password</FormLabel>
                   <FormControl>
                     <Input type="password" v-bind="componentField" placeholder="New password (min. 6 characters)" />
                   </FormControl>
-                  <FormMessage>{{ errorMessage }}</FormMessage>
+                  <FormMessage />
                 </FormItem>
               </FormField>
 
-              <FormField name="confirmPassword" v-slot="{ componentField, errorMessage }">
-                <FormItem>
+              <FormField name="confirmPassword" v-slot="{ componentField }">
+                <FormItem v-auto-animate>
                   <FormLabel>Confirm New Password</FormLabel>
                   <FormControl>
                     <Input type="password" v-bind="componentField" placeholder="Confirm new password" />
                   </FormControl>
-                  <FormMessage>{{ errorMessage }}</FormMessage>
+                  <FormMessage />
                 </FormItem>
               </FormField>
 
               <Button type="submit" class="w-full sm:w-auto bg-primary text-white">Update Password</Button>
-            </Form>
+            </form>
           </CardContent>
         </Card>
       </TabsContent>
@@ -429,7 +420,7 @@ const deleteAccount = deleteForm.handleSubmit(async (values) => {
             </CardDescription>
           </CardHeader>
           <CardContent class="pt-6">
-            <Form @submit="deleteAccount" class="space-y-6">
+            <form @submit="deleteAccount" class="space-y-6">
               <Alert v-if="deleteError" variant="destructive" class="mb-4">
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{{ deleteError }}</AlertDescription>
@@ -455,28 +446,28 @@ const deleteAccount = deleteForm.handleSubmit(async (values) => {
                 </div>
               </div>
 
-              <FormField name="password" v-slot="{ componentField, errorMessage }">
-                <FormItem>
+              <FormField name="password" v-slot="{ componentField }">
+                <FormItem v-auto-animate>
                   <FormLabel>Confirm with Password</FormLabel>
                   <FormControl>
                     <Input type="password" v-bind="componentField" placeholder="Your current password" />
                   </FormControl>
-                  <FormMessage>{{ errorMessage }}</FormMessage>
+                  <FormMessage />
                 </FormItem>
               </FormField>
 
-              <FormField name="confirmation" v-slot="{ componentField, errorMessage }">
-                <FormItem>
+              <FormField name="confirmation" v-slot="{ componentField }">
+                <FormItem v-auto-animate>
                   <FormLabel>Type "delete my account" to confirm</FormLabel>
                   <FormControl>
                     <Input v-bind="componentField" placeholder="delete my account" />
                   </FormControl>
-                  <FormMessage>{{ errorMessage }}</FormMessage>
+                  <FormMessage />
                 </FormItem>
               </FormField>
 
               <Button type="submit" variant="destructive" class="w-full">Delete Account</Button>
-            </Form>
+            </form>
           </CardContent>
         </Card>
       </TabsContent>
