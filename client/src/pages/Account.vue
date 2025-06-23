@@ -174,17 +174,47 @@ const passwordForm = useForm({
   validateOnInput: true,
 })
 
-const updatePassword = passwordForm.handleSubmit(async (values) => {
+// Reset success message when user starts typing in the form
+watch(() => [
+  passwordForm.values.currentPassword,
+  passwordForm.values.newPassword,
+  passwordForm.values.confirmPassword
+], () => {
+  if (passwordSuccess.value) {
+    passwordSuccess.value = false
+  }
+})
+
+// Success message for password update
+const passwordSuccess = ref(false)
+
+const updatePassword = async (values) => {
   passwordError.value = '' // Clear previous error
+  passwordSuccess.value = false // Reset success message
   try {
     console.log('Trying to update password with values:', values)
     await auth.updatePassword(values.currentPassword, values.newPassword)
     console.log('Password updated successfully')
+
+    // Show success message
+    passwordSuccess.value = true
+
+    // Show toast notification
     toast({
       title: 'Success',
       description: h('span', {}, 'Your password has been updated successfully'),
+      variant: 'default',
+      duration: 5000, // Show for 5 seconds
     })
-    passwordForm.resetForm()
+
+    // Reset form using the form object
+    passwordForm.resetForm({
+      values: {
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      }
+    })
   } catch (err) {
     console.error('Error updating password:', err)
     if (err.response?.data?.message === 'Invalid credentials') {
@@ -199,7 +229,7 @@ const updatePassword = passwordForm.handleSubmit(async (values) => {
       variant: 'destructive',
     })
   }
-})
+}
 
 // Delete Account Form
 const deleteSchema = toTypedSchema(z.object({
@@ -218,7 +248,7 @@ const deleteForm = useForm({
   validateOnInput: true,
 })
 
-const deleteAccount = deleteForm.handleSubmit(async (values) => {
+const deleteAccount = async (values) => {
   deleteError.value = '' // Clear previous error
   try {
     await auth.deleteAccount(values.password)
@@ -241,7 +271,7 @@ const deleteAccount = deleteForm.handleSubmit(async (values) => {
       variant: 'destructive',
     })
   }
-})
+}
 </script>
 
 <template>
@@ -374,10 +404,15 @@ const deleteAccount = deleteForm.handleSubmit(async (values) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form @submit.prevent="updatePassword" class="space-y-6">
+            <Form :validation-schema="passwordSchema" :initial-values="{ currentPassword: '', newPassword: '', confirmPassword: '' }" @submit="updatePassword" class="space-y-6">
               <Alert v-if="passwordError" variant="destructive" class="mb-4">
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{{ passwordError }}</AlertDescription>
+              </Alert>
+
+              <Alert v-if="passwordSuccess" variant="default" class="mb-4 bg-green-50 border-green-200 text-green-800">
+                <AlertTitle>Success</AlertTitle>
+                <AlertDescription>Your password has been updated successfully!</AlertDescription>
               </Alert>
 
               <div class="p-4 bg-primary/10 rounded-lg mb-2">
@@ -416,7 +451,7 @@ const deleteAccount = deleteForm.handleSubmit(async (values) => {
               </FormField>
 
               <Button type="submit" class="w-full sm:w-auto bg-primary text-white">Update Password</Button>
-            </form>
+            </Form>
           </CardContent>
         </Card>
       </TabsContent>
@@ -431,7 +466,7 @@ const deleteAccount = deleteForm.handleSubmit(async (values) => {
             </CardDescription>
           </CardHeader>
           <CardContent class="pt-6">
-            <form @submit.prevent="deleteAccount" class="space-y-6">
+            <Form :validation-schema="deleteSchema" :initial-values="{ password: '', confirmation: '' }" @submit="deleteAccount" class="space-y-6">
               <Alert v-if="deleteError" variant="destructive" class="mb-4">
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{{ deleteError }}</AlertDescription>
@@ -478,7 +513,7 @@ const deleteAccount = deleteForm.handleSubmit(async (values) => {
               </FormField>
 
               <Button type="submit" variant="destructive" class="w-full">Delete Account</Button>
-            </form>
+            </Form>
           </CardContent>
         </Card>
       </TabsContent>
