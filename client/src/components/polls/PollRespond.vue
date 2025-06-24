@@ -15,18 +15,17 @@ import PollCarousel from '@/components/polls/PollCarousel.vue'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Rocket } from 'lucide-vue-next'
 
-const router       = useRouter()
-const route        = useRoute()
-const auth         = useAuth()
+const router = useRouter()
+const route = useRoute()
+const auth = useAuth()
 
-const poll         = ref(null)
-const answers      = ref([])
-const loading      = ref(true)
+const poll = ref(null)
+const answers = ref([])
+const loading = ref(true)
 const currentIndex = ref(0)
-const showSuccess  = ref(false)
+const showSuccess = ref(false)
 const isSubmitting = ref(false)
 
-// Initialise answers: pour "single" → string, pour "multiple" → []
 function initAnswers() {
   answers.value = poll.value.questions.map(q =>
       q.type === 'multiple_choice'
@@ -40,6 +39,7 @@ onMounted(async () => {
     router.push({ name: 'login', query: { redirect: route.fullPath }})
     return
   }
+
   const { pollId } = route.params
   const res = await api.get(`/polls/${pollId}`)
   poll.value = res.data
@@ -48,36 +48,59 @@ onMounted(async () => {
   loading.value = false
 })
 
-// Vérifie que toutes les questions sont répondues
-const allAnswered = computed(() =>
-    !answers.value.some((ans, i) => {
-      const q = poll.value.questions[i]
-      if (q.type === 'multiple_choice') {
-        return q.subType === 'single'
-            ? !ans
-            : (!Array.isArray(ans) || ans.length === 0)
-      }
-      return !ans || !ans.trim()
-    })
-)
+function toggleCheckbox(index, option, checked) {
+  if (!Array.isArray(answers.value[index])) {
+    answers.value[index] = []
+  }
 
-// Handler manuel pour les cases à cocher
-function handleCheckboxChange(option, checked, i) {
-  const arr = Array.isArray(answers.value[i]) ? [...answers.value[i]] : []
+  const arr = [...answers.value[index]]
+
   if (checked) {
     if (!arr.includes(option)) arr.push(option)
   } else {
-    const idx = arr.indexOf(option)
-    if (idx !== -1) arr.splice(idx, 1)
+    const i = arr.indexOf(option)
+    if (i !== -1) arr.splice(i, 1)
   }
-  answers.value.splice(i, 1, arr)
+
+  answers.value[index] = [...arr]
 }
+
+const allAnswered = computed(() => {
+  return poll.value.questions.every((q, i) => {
+    const a = answers.value[i]
+    if (q.type === 'multiple_choice') {
+      if (q.subType === 'single') {
+        return !!a
+      } else {
+        return Array.isArray(a) && a.length > 0
+      }
+    } else {
+      return a && a.trim() !== ''
+    }
+  })
+})
+
+const answeredCount = computed(() => {
+  return poll.value.questions.reduce((count, q, i) => {
+    const a = answers.value[i]
+    if (q.type === 'multiple_choice') {
+      if (q.subType === 'single') {
+        return count + (a ? 1 : 0)
+      } else {
+        return count + (Array.isArray(a) && a.length > 0 ? 1 : 0)
+      }
+    } else {
+      return count + ((a && a.trim()) ? 1 : 0)
+    }
+  }, 0)
+})
 
 async function submit() {
   if (!allAnswered.value) {
     toast({ title: 'Formulaire incomplet', variant: 'destructive' })
     return
   }
+
   try {
     isSubmitting.value = true
     await api.post(`/polls/${poll.value._id}/responses`, {
@@ -97,11 +120,11 @@ async function submit() {
 
 <template>
   <div v-if="!loading" v-auto-animate class="w-full">
-    <!-- Dialog de succès -->
+    <!-- Success Dialog -->
     <Dialog v-model:open="showSuccess">
       <DialogContent class="text-center">
         <div class="space-y-4 py-6">
-          <Rocket class="h-12 w-12 text-primary animate-bounce"/>
+          <Rocket class="h-12 w-12 text-primary animate-bounce" />
           <h2 class="text-2xl font-bold">Réponses envoyées !</h2>
           <p>Merci pour votre participation. Redirection…</p>
         </div>
@@ -113,20 +136,12 @@ async function submit() {
         :questions="poll.questions"
         :isCreator="false"
         :isCurrentQuestionValid="allAnswered"
-        :answeredCount="answers.reduce((sum, a, i) => {
-        const q = poll.questions[i]
-        if (q.type === 'multiple_choice') {
-          return sum + (q.subType === 'single'
-            ? (a ? 1 : 0)
-            : (Array.isArray(a) && a.length > 0 ? 1 : 0))
-        }
-        return sum + (!!a && a.trim() ? 1 : 0)
-      }, 0)"
+        :answeredCount="answeredCount"
     >
       <template #default="{ question, index }">
-        <!-- Choix multiple -->
+        <!-- Multiple Choice -->
         <div v-if="question.type === 'multiple_choice'" class="space-y-3">
-          <!-- radio single -->
+          <!-- Single (Radio) -->
           <RadioGroup
               v-if="question.subType === 'single'"
               v-model="answers[index]"
@@ -142,24 +157,24 @@ async function submit() {
             </div>
           </RadioGroup>
 
-          <!-- checkbox multiple -->
+          <!-- Multiple (Checkboxes) -->
           <div v-else class="space-y-2">
             <div
-                v-for="(opt, i) in question.options"
-                :key="i"
+                v-for="(opt, i2) in question.options"
+                :key="i2"
                 class="flex items-center gap-2"
             >
               <Checkbox
-                  :id="`q${index}-cb${i}`"
-                  :checked="answers[index].includes(opt)"
-                  @checkedChange="checked => handleCheckboxChange(opt, checked, index)"
+                  :model-value="Array.isArray(answers[index]) && answers[index].includes(opt)"
+                  @update:modelValue="val => toggleCheckbox(index, opt, val)"
+                  :id="`q${index}-cb${i2}`"
               />
-              <Label :for="`q${index}-cb${i}`">{{ opt }}</Label>
+              <Label :for="`q${index}-cb${i2}`">{{ opt }}</Label>
             </div>
           </div>
         </div>
 
-        <!-- question ouverte -->
+        <!-- Open-Ended -->
         <div v-else>
           <Input
               v-if="question.subType === 'short'"
