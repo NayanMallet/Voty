@@ -24,15 +24,20 @@ Les utilisateurs peuvent s'inscrire, créer des sondages composés de questions 
 - Backend : Node.js, Express, MongoDB, Mongoose
 - Authentification : JWT, bcryptjs
 - Frontend : Vue.js (à venir)
-- Conteneurisation : Docker (MongoDB)
+- Conteneurisation : Docker (Application complète)
 
 ---
 
 ## Prérequis
 
+### Pour le développement local
 - Node.js v16+
-- Docker (pour MongoDB)
 - pnpm ou npm
+- MongoDB (via Docker ou installation locale)
+
+### Pour le déploiement Docker
+- Docker
+- Docker Compose
 
 ---
 
@@ -100,7 +105,47 @@ Structure du projet
   |-- /routes            # Routes Express
   |-- .env               # Variables d'environnement
   |-- package.json
+  |-- Dockerfile         # Configuration Docker pour le serveur
+/client
+  |-- /src               # Code source Vue.js
+  |-- package.json
+  |-- Dockerfile         # Configuration Docker pour le client
+  |-- nginx.conf         # Configuration Nginx pour servir l'application
+docker-compose.yml       # Configuration Docker Compose pour l'ensemble de l'application
 ```
 
+---
 
+## Déploiement avec Docker
 
+Pour déployer l'application complète (client, serveur et base de données) avec Docker :
+
+1. Cloner le repo :
+
+```bash
+git clone <url-du-repo>
+cd voty
+```
+
+2. Lancer l'application avec Docker Compose :
+
+```bash
+docker-compose up -d
+```
+
+L'application sera accessible sur :
+- Client (Frontend) : `http://localhost`
+- API (Backend) : `http://localhost:3000/api`
+- MongoDB : `mongodb://localhost:27017`
+
+3. Pour arrêter l'application :
+
+```bash
+docker-compose down
+```
+
+4. Pour arrêter l'application et supprimer les volumes (données de la base de données) :
+
+```bash
+docker-compose down -v
+```

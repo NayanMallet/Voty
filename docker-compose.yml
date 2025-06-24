@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # MongoDB service
+  mongo:
+    image: mongo:latest
+    container_name: voty-mongo
+    restart: always
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - voty-network
+
+  # Server service
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: voty-server
+    restart: always
+    depends_on:
+      - mongo
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/voty
+      - PORT=3000
+      - JWT_SECRET=your_jwt_secret_key_here
+      - CLIENT_URL=http://localhost
+    ports:
+      - "3000:3000"
+    networks:
+      - voty-network
+
+  # Client service
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: voty-client
+    restart: always
+    depends_on:
+      - server
+    environment:
+      - VITE_API_URL=http://localhost:3000/api
+    ports:
+      - "80:80"
+    networks:
+      - voty-network
+
+networks:
+  voty-network:
+    driver: bridge
+
+volumes:
+  mongo-data:
