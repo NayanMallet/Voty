@@ -1,6 +1,7 @@
 import Poll from '../models/Poll'
 import { CreatePollDTO, UpdatePollDTO } from '../validators/pollValidator'
 import { PollStatus } from '../enums/PollStatus'
+import { IPoll } from '../interfaces/IPoll'
 
 /**
  * Crée un nouveau sondage.
@@ -17,7 +18,8 @@ import { PollStatus } from '../enums/PollStatus'
  * Si une erreur se produit lors de la création du sondage, elle est
  * levée pour être gérée par l'appelant.
  */
-export async function createPoll(userId: string, data: CreatePollDTO) {
+
+export async function createPoll(userId: string, data: CreatePollDTO): Promise<IPoll> {
     const poll = new Poll({
         name: data.name,
         description: data.description || '',
@@ -46,7 +48,7 @@ export async function createPoll(userId: string, data: CreatePollDTO) {
  * Le sondage mis à jour est ensuite enregistré dans la base de données et renvoyé
  * à l'appelant.
  */
-export async function updatePoll(pollId: string, userId: string, data: UpdatePollDTO) {
+export async function updatePoll(pollId: string, userId: string, data: UpdatePollDTO): Promise<IPoll> {
     const poll = await Poll.findById(pollId)
     if (!poll) throw new Error('Poll not found')
     if (poll.creator.toString() !== userId) throw new Error('Not authorized')
@@ -76,7 +78,7 @@ export async function updatePoll(pollId: string, userId: string, data: UpdatePol
  * supprimé de la base de données.
 
  */
-export async function deletePoll(pollId: string, userId: string) {
+export async function deletePoll(pollId: string, userId: string): Promise<void> {
     const poll = await Poll.findById(pollId)
     if (!poll) throw new Error('Poll not found')
     if (poll.creator.toString() !== userId) throw new Error('Not authorized')
@@ -93,7 +95,7 @@ export async function deletePoll(pollId: string, userId: string) {
  * (nom et email). Les sondages sont triés par date de création, du plus
  * récent au plus ancien.
  */
-export async function getAllPolls() {
+export async function getAllPolls(): Promise<IPoll[]> {
     return Poll.find().select('-__v').populate('creator', 'name email').sort({ createdAt: -1 })
 }
 
@@ -107,6 +109,6 @@ export async function getAllPolls() {
  * en excluant la version interne (__v). Si le sondage n'existe pas,
  * elle retourne null.
  */
-export async function getPollById(pollId: string) {
+export async function getPollById(pollId: string) : Promise<IPoll | null> {
     return Poll.findById(pollId).select('-__v')
 }
