@@ -1,23 +1,24 @@
-# Use Node.js as the base image
+# Base image
 FROM node:20-alpine
 
-# Set working directory
+# Set working dir
 WORKDIR /app
 
-# Install pnpm globally
+# Install pnpm
 RUN npm install -g pnpm@10.6.2
 
-# Copy package.json and pnpm-lock.yaml
+# Copy files and install dependencies
 COPY package.json pnpm-lock.yaml* ./
-
-# Install dependencies
 RUN pnpm install
 
-# Copy the rest of the application
+# Copy everything else
 COPY . .
 
-# Expose the port the app runs on
+# Build TypeScript
+RUN pnpm run build
+
+# Expose port
 EXPOSE 3000
 
-# Command to run the application
-CMD ["node", "index.js"]
+# Run compiled app
+CMD ["node", "dist/index.js"]
