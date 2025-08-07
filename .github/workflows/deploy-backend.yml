@@ -2,8 +2,8 @@ name: Deploy Backend to Render
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'backend/*.*.*'  # Matches tags like 'backend/1.0.0'
 
 jobs:
   build-test-deploy:
