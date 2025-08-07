@@ -6,10 +6,11 @@ dotenvFlow.config({ node_env: 'test' });
 
 // Silence warnings spécifiques à dotenv-flow
 const originalWarn = console.warn;
-console.warn = (...args) => {
+console.warn = (...args: unknown[]): void => {
     if (
         typeof args[0] === 'string' &&
         args[0].includes('[dotenv-flow@')
     ) return;
     originalWarn(...args);
 };
+
