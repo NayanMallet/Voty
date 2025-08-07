@@ -1,31 +1,171 @@
-import { Router } from 'express'
-import auth from '../middleware/auth'
+import { Router } from 'express';
+
+import auth from '../middleware/auth';
+
 import { getAllPollsController } from "../polls/controllers/getAllPollsController";
 import { getPollByIdController } from "../polls/controllers/getPollByIdController";
 import { createPollController } from "../polls/controllers/createPollController";
 import { updatePollController } from "../polls/controllers/updatePollController";
 import { deletePollController } from "../polls/controllers/deletePollController";
-import { submitResponseController } from "../responses/controllers/submitResponseController";
-import { getResponsesByPollController } from "../responses/controllers/getResponsesByPollController";
-import { updateResponseController } from "../responses/controllers/updateResponseController";
-import { deleteResponseController } from "../responses/controllers/deleteResponseController";
 import { getPollStatsController } from "../polls/controllers/getPollStatsController";
-import { getUserResponseForPollController } from "../responses/controllers/getUserResponseForPollController";
 
-const router = Router()
+const router = Router();
 
-router.get('/', getAllPollsController)
-router.get('/:id', getPollByIdController)
-router.post('/', auth, createPollController)
-router.put('/:id', auth, updatePollController)
-router.delete('/:id', auth, deletePollController)
+/**
+ * @openapi
+ * /polls:
+ *   get:
+ *     summary: Get all polls
+ *     tags: [Polls]
+ *     responses:
+ *       200:
+ *         description: List of all polls
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Poll'
+ *       500:
+ *         $ref: '#/components/schemas/Error'
+ */
+router.get('/', getAllPollsController);
 
-router.post('/:id/responses', auth, submitResponseController)
-router.get('/:id/responses', auth, getResponsesByPollController)
-router.put('/:id/responses/:responseId', auth, updateResponseController)
-router.delete('/:id/responses/:responseId', auth, deleteResponseController)
-router.get('/:id/stats', auth, getPollStatsController)
+/**
+ * @openapi
+ * /polls/{id}:
+ *   get:
+ *     summary: Get a poll by ID
+ *     tags: [Polls]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Poll data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Poll'
+ *       404:
+ *         $ref: '#/components/schemas/Error'
+ */
+router.get('/:id', getPollByIdController);
 
-router.get('/users/me/responses/:pollId', auth, getUserResponseForPollController)
+/**
+ * @openapi
+ * /polls:
+ *   post:
+ *     summary: Create a new poll
+ *     tags: [Polls]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreatePollInput'
+ *     responses:
+ *       201:
+ *         description: Poll created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Poll'
+ *       400:
+ *         $ref: '#/components/schemas/Error'
+ */
+router.post('/', auth, createPollController);
 
-export default router
+/**
+ * @openapi
+ * /polls/{id}:
+ *   put:
+ *     summary: Update a poll
+ *     tags: [Polls]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreatePollInput'
+ *     responses:
+ *       200:
+ *         description: Poll updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Poll'
+ *       400:
+ *         $ref: '#/components/schemas/Error'
+ */
+router.put('/:id', auth, updatePollController);
+
+/**
+ * @openapi
+ * /polls/{id}:
+ *   delete:
+ *     summary: Delete a poll
+ *     tags: [Polls]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Poll deleted
+ *       400:
+ *         $ref: '#/components/schemas/Error'
+ */
+router.delete('/:id', auth, deletePollController);
+
+/**
+ * @openapi
+ * /polls/{id}/stats:
+ *   get:
+ *     summary: Get poll statistics
+ *     tags: [Polls]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Poll statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalResponses:
+ *                   type: integer
+ *                 questions:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       403:
+ *         $ref: '#/components/schemas/Error'
+ */
+router.get('/:id/stats', auth, getPollStatsController);
+
+export default router;

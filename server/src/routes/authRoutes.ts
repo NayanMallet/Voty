@@ -10,15 +10,176 @@ import { updateEmailController } from "../auth/controllers/updateEmailController
 import { updatePasswordController } from "../auth/controllers/updatePasswordController";
 import { deleteAccountController } from "../auth/controllers/deleteAccountController";
 
-const router = Router()
+const router = Router();
 
-router.post('/register', registerController)
-router.post('/login', loginController)
-router.get('/me', auth, getCurrentUserController)
+/**
+ * @openapi
+ * /auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/RegisterUserInput'
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *       400:
+ *         $ref: '#/components/schemas/Error'
+ */
+router.post('/register', registerController);
 
-router.put('/update-name', auth, updateNameController)
-router.put('/update-email', auth, updateEmailController)
-router.put('/update-password', auth, updatePasswordController)
-router.delete('/delete-account', auth, deleteAccountController)
+/**
+ * @openapi
+ * /auth/login:
+ *   post:
+ *     summary: Login a user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/LoginUserInput'
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *       400:
+ *         $ref: '#/components/schemas/Error'
+ */
+router.post('/login', loginController);
 
-export default router
+/**
+ * @openapi
+ * /auth/me:
+ *   get:
+ *     summary: Get current logged-in user
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       401:
+ *         $ref: '#/components/schemas/Error'
+ */
+router.get('/me', auth, getCurrentUserController);
+
+/**
+ * @openapi
+ * /auth/update-name:
+ *   put:
+ *     summary: Update user's name
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateNameInput'
+ *     responses:
+ *       200:
+ *         description: Updated user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       400:
+ *         $ref: '#/components/schemas/Error'
+ */
+router.put('/update-name', auth, updateNameController);
+
+/**
+ * @openapi
+ * /auth/update-email:
+ *   put:
+ *     summary: Update user's email
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateEmailInput'
+ *     responses:
+ *       200:
+ *         description: Updated user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       400:
+ *         $ref: '#/components/schemas/Error'
+ */
+router.put('/update-email', auth, updateEmailController);
+
+/**
+ * @openapi
+ * /auth/update-password:
+ *   put:
+ *     summary: Update user's password
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdatePasswordInput'
+ *     responses:
+ *       200:
+ *         description: Password updated
+ *       400:
+ *         $ref: '#/components/schemas/Error'
+ */
+router.put('/update-password', auth, updatePasswordController);
+
+/**
+ * @openapi
+ * /auth/delete-account:
+ *   delete:
+ *     summary: Delete user account
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/DeleteAccountInput'
+ *     responses:
+ *       200:
+ *         description: Account deleted
+ *       400:
+ *         $ref: '#/components/schemas/Error'
+ */
+router.delete('/delete-account', auth, deleteAccountController);
+
+export default router;
