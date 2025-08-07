@@ -8,7 +8,7 @@ on:
       - "client/**"
 
 jobs:
-  build-and-deploy:
+  deploy:
     name: Build & Deploy Frontend
     runs-on: ubuntu-latest
     defaults:
@@ -37,10 +37,12 @@ jobs:
       - name: 🛠 Build
         run: pnpm run build
 
-      - name: 🚀 Deploy to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: voty-client
-          directory: ./dist
+      - name: 🚀 Deploy with Wrangler
+        run: |
+          npx wrangler pages deploy dist \
+            --project-name=voty-client \
+            --branch=main \
+            --commit-dirty=true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
