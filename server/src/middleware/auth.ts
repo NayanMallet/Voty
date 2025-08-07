@@ -19,7 +19,12 @@ const auth = (req: AuthenticatedRequest, res: Response, next: NextFunction): voi
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || '') as JwtPayload
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+            throw new Error("JWT_SECRET is not defined in environment variables");
+        }
+
+        const decoded = jwt.verify(token, secret) as JwtPayload;
 
         if (!decoded.user || !decoded.user.id) {
             console.error('Invalid token structure:', decoded)
