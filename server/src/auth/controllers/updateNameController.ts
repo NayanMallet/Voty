@@ -12,7 +12,7 @@ export const updateNameController = async (req: AuthenticatedRequest, res: Respo
     try {
         const data = updateNameSchema.parse(req.body)
         const user = await updateName(req.user!.id, data)
-        res.json(user)
+        res.json({ user })
     } catch (error) {
         console.error('[updateNameController]', (error as Error).message)
         res.status(400).json({ message: (error as Error).message })

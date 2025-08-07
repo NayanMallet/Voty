@@ -12,7 +12,9 @@ export const updateEmailController = async (req: AuthenticatedRequest, res: Resp
     try {
         const data = updateEmailSchema.parse(req.body)
         const user = await updateEmail(req.user!.id, data)
-        res.json({ ...user, password: undefined })
+
+        const safeUser = { ...user.toObject(), password: undefined }
+        res.json({ user: safeUser })
     } catch (error) {
         console.error('[updateEmailController]', (error as Error).message)
         res.status(400).json({ message: (error as Error).message })

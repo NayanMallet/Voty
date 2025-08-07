@@ -8,7 +8,7 @@ import { AuthenticatedRequest } from '../../middleware/auth'
 export const getUserResponseForPollController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         const response = await getUserResponseForPoll(req.user!.id, req.params.pollId)
-        res.json(response || null)
+        res.json({ response: response || null })
     } catch (error) {
         console.error('[getUserResponseForPollController]', (error as Error).message)
         res.status(500).json({ message: 'Server error' })

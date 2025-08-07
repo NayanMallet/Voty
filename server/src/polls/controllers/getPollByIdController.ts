@@ -13,7 +13,7 @@ export const getPollByIdController = async (req: Request, res: Response): Promis
             return
         }
 
-        res.json(poll)
+        res.json({ poll });
     } catch (error) {
         console.error('[getPollByIdController]', (error as Error).message)
         res.status(500).json({ message: 'Server error' })

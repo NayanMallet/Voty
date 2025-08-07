@@ -21,7 +21,7 @@ export const getCurrentUserController = async (
             return
         }
 
-        res.json(user)
+        res.json({ user })
     } catch (err) {
         console.error('[getCurrentUserController]', (err as Error).message)
         res.status(500).json({ message: 'Server error' })
