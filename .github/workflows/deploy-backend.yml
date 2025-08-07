@@ -23,7 +23,7 @@ jobs:
           node-version: 20
           cache: 'pnpm'
 
-      - name: 📦 Install PNPM
+      - name: 📦 Install PNPM 
         run: npm install -g pnpm
 
       - name: 📥 Install dependencies
