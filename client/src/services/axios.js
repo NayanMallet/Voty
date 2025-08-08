@@ -15,6 +15,7 @@ instance.interceptors.request.use(config => {
             data: config.data
         })
     }
+    console.log(`[Axios] Sending request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`)
     return config
 })
 

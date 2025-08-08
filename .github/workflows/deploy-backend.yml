@@ -32,9 +32,6 @@ jobs:
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🛠 Build TypeScript
-        run: pnpm build
-
       - name: ✅ Run tests
         run: pnpm test
 

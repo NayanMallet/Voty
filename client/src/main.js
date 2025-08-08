@@ -13,6 +13,8 @@ app.use(router)
 
 const auth = useAuth()
 
+console.log('VITE_API_URL =', import.meta.env.VITE_API_URL)
+
 if (auth.token) {
     auth.fetchUser().then(() => {
         console.log('✅ Welcome back,', auth.user?.name)
