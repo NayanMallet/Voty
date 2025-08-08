@@ -36,7 +36,7 @@ jobs:
       - name: 🛠 Build
         run: pnpm run build
         env:
-          VITE_API_URL: ${{ vars.FRO }}
+          VITE_API_URL: ${{ vars.FRONTEND_API_URL }}
 
       - name: 🚀 Deploy with Wrangler
         run: |
