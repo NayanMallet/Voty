@@ -2,15 +2,13 @@ name: Auto Tag & Deploy on Version Change
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   detect-tag-and-deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      actions: write  # nécessaire pour déclencher un autre workflow
+      contents: write  # nécessaire pour pousser des tags
 
     steps:
       - name: ⬇️ Checkout repo
@@ -21,49 +19,101 @@ jobs:
       - name: 🧰 Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
 
-      - name: 🔧 Configure git
+      - name: 🔧 Configure git (utilise le PAT pour que les tags déclenchent les autres workflows)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git remote set-url origin \
             https://x-access-token:${{ secrets.PAT_WORKFLOW }}@github.com/${{ github.repository }}.git
 
-      - name: 🔍 Get previous commit
+      - name: 🔍 Get previous commit (fallback sur HEAD si premier commit)
         id: prev
-        run: echo "sha=$(git rev-parse HEAD~1)" >> $GITHUB_OUTPUT
+        run: |
+          if git rev-parse HEAD~1 >/dev/null 2>&1; then
+            echo "sha=$(git rev-parse HEAD~1)" >> $GITHUB_OUTPUT
+          else
+            echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+          fi
 
       - name: 📦 Check client version
         id: client
+        shell: bash
         run: |
-          OLD_VERSION=$(git show ${{ steps.prev.outputs.sha }}:client/package.json | jq -r .version)
-          NEW_VERSION=$(jq -r .version client/package.json)
-          echo "changed=$([ "$OLD_VERSION" != "$NEW_VERSION" ] && echo true || echo false)" >> $GITHUB_OUTPUT
-          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          if [ -f client/package.json ]; then
+            old_json="$(git show ${{ steps.prev.outputs.sha }}:client/package.json 2>/dev/null || true)"
+            if [ -n "$old_json" ]; then OLD_VERSION="$(echo "$old_json" | jq -r .version)"; else OLD_VERSION=""; fi
+            NEW_VERSION="$(jq -r .version client/package.json)"
+            echo "changed=$([ "$OLD_VERSION" != "$NEW_VERSION" ] && echo true || echo false)" >> $GITHUB_OUTPUT
+            echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "version=" >> $GITHUB_OUTPUT
+          fi
 
       - name: 📦 Check backend version
         id: backend
+        shell: bash
         run: |
-          OLD_VERSION=$(git show ${{ steps.prev.outputs.sha }}:server/package.json | jq -r .version)
-          NEW_VERSION=$(jq -r .version server/package.json)
-          echo "changed=$([ "$OLD_VERSION" != "$NEW_VERSION" ] && echo true || echo false)" >> $GITHUB_OUTPUT
-          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          if [ -f server/package.json ]; then
+            old_json="$(git show ${{ steps.prev.outputs.sha }}:server/package.json 2>/dev/null || true)"
+            if [ -n "$old_json" ]; then OLD_VERSION="$(echo "$old_json" | jq -r .version)"; else OLD_VERSION=""; fi
+            NEW_VERSION="$(jq -r .version server/package.json)"
+            echo "changed=$([ "$OLD_VERSION" != "$NEW_VERSION" ] && echo true || echo false)" >> $GITHUB_OUTPUT
+            echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "version=" >> $GITHUB_OUTPUT
+          fi
 
-      - name: 🏷 Tag & Deploy Client
+      - name: 🏷 Tag Client (si version a changé)
+        id: tag_client
         if: steps.client.outputs.changed == 'true'
+        shell: bash
         run: |
           TAG="client/${{ steps.client.outputs.version }}"
-          git tag "$TAG"
-          git push origin "$TAG"
-          gh workflow run "Deploy Frontend to Cloudflare Pages"
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT_WORKFLOW }}
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
+            echo "Tag $TAG existe déjà, on ne le recrée pas."
+          else
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin "$TAG"
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
+          fi
 
-      - name: 🏷 Tag & Deploy Backend
+      - name: 🏷 Tag Backend (si version a changé)
+        id: tag_backend
         if: steps.backend.outputs.changed == 'true'
+        shell: bash
         run: |
           TAG="backend/${{ steps.backend.outputs.version }}"
-          git tag "$TAG"
-          git push origin "$TAG"
-          gh workflow run "Deploy Backend to Render"
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT_WORKFLOW }}
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
+            echo "Tag $TAG existe déjà, on ne le recrée pas."
+          else
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin "$TAG"
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
+          fi
+
+      # Dispatch APRÈS création/poussée des tags
+      - name: ▶️ Dispatch Frontend Deploy
+        if: steps.client.outputs.changed == 'true'
+        run: |
+          curl -sSL -X POST \
+            -H "Authorization: token ${{ secrets.PAT_WORKFLOW }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/dispatches \
+            -d '{"event_type":"deploy-frontend","client_payload":{"version":"'"${{ steps.client.outputs.version }}"'","tag":"'"${{ steps.tag_client.outputs.tag }}"'"}}'
+
+      - name: ▶️ Dispatch Backend Deploy
+        if: steps.backend.outputs.changed == 'true'
+        run: |
+          curl -sSL -X POST \
+            -H "Authorization: token ${{ secrets.PAT_WORKFLOW }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/dispatches \
+            -d '{"event_type":"deploy-backend","client_payload":{"version":"'"${{ steps.backend.outputs.version }}"'","tag":"'"${{ steps.tag_backend.outputs.tag }}"'"}}'

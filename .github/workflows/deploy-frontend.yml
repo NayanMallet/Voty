@@ -2,8 +2,9 @@ name: Deploy Frontend to Cloudflare Pages
 
 on:
   push:
-    tags:
-      - 'client/*.*.*'  # Matches tags like 'client/1.0.0'
+    tags: [ 'client/*.*.*' ]
+  repository_dispatch:
+    types: [deploy-frontend]
 
 jobs:
   deploy:
@@ -35,7 +36,7 @@ jobs:
       - name: 🛠 Build
         run: pnpm run build
         env:
-          VITE_API_URL: ${{ vars.FRONTEND_API_URL }}
+          VITE_API_URL: ${{ vars.FRO }}
 
       - name: 🚀 Deploy with Wrangler
         run: |
