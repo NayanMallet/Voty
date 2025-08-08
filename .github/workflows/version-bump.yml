@@ -1,14 +1,16 @@
-name: Auto Tag on Version Change
+name: Auto Tag & Deploy on Version Change
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
-  detect-and-tag:
+  detect-tag-and-deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write  # nécessaire pour déclencher un autre workflow
 
     steps:
       - name: ⬇️ Checkout repo
@@ -19,14 +21,10 @@ jobs:
       - name: 🧰 Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
 
-      - name: 🔧 Configure git author
+      - name: 🔧 Configure git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: 🔑 Use PAT for pushes
-        # on réécrit l'URL 'origin' pour que git push utilise le PAT
-        run: |
           git remote set-url origin \
             https://x-access-token:${{ secrets.PAT_WORKFLOW }}@github.com/${{ github.repository }}.git
 
@@ -34,36 +32,38 @@ jobs:
         id: prev
         run: echo "sha=$(git rev-parse HEAD~1)" >> $GITHUB_OUTPUT
 
-      - name: 📦 Check client version change
+      - name: 📦 Check client version
         id: client
         run: |
           OLD_VERSION=$(git show ${{ steps.prev.outputs.sha }}:client/package.json | jq -r .version)
           NEW_VERSION=$(jq -r .version client/package.json)
-          echo "old=$OLD_VERSION" >> $GITHUB_OUTPUT
-          echo "new=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "changed=$([ "$OLD_VERSION" != "$NEW_VERSION" ] && echo true || echo false)" >> $GITHUB_OUTPUT
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
-      - name: 📦 Check backend version change
+      - name: 📦 Check backend version
         id: backend
         run: |
           OLD_VERSION=$(git show ${{ steps.prev.outputs.sha }}:server/package.json | jq -r .version)
           NEW_VERSION=$(jq -r .version server/package.json)
-          echo "old=$OLD_VERSION" >> $GITHUB_OUTPUT
-          echo "new=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "changed=$([ "$OLD_VERSION" != "$NEW_VERSION" ] && echo true || echo false)" >> $GITHUB_OUTPUT
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
-      - name: 🏷 Tag client if version changed
+      - name: 🏷 Tag & Deploy Client
         if: steps.client.outputs.changed == 'true'
         run: |
-          TAG="client/${{ steps.client.outputs.new }}"
-          echo "Creating & pushing $TAG"
+          TAG="client/${{ steps.client.outputs.version }}"
           git tag "$TAG"
           git push origin "$TAG"
+          gh workflow run "Deploy Frontend to Cloudflare Pages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_WORKFLOW }}
 
-      - name: 🏷 Tag backend if version changed
+      - name: 🏷 Tag & Deploy Backend
         if: steps.backend.outputs.changed == 'true'
         run: |
-          TAG="backend/${{ steps.backend.outputs.new }}"
-          echo "Creating & pushing $TAG"
+          TAG="backend/${{ steps.backend.outputs.version }}"
           git tag "$TAG"
           git push origin "$TAG"
+          gh workflow run "Deploy Backend to Render"
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_WORKFLOW }}
