@@ -1,48 +1,22 @@
-import { Response, NextFunction } from 'express'
+import type { Response } from 'express'
+import type { AuthenticatedRequest } from '../../middleware/auth'
 import { deleteResponse } from '../services/responseService'
-import { AuthenticatedRequest } from '../../middleware/auth'
 
-/**
- * Supprimer une réponse
- */
-export const deleteResponseController = async (
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
-): Promise<void> => {
-    const log = req.log || console
+export const deleteResponseController = async (req: AuthenticatedRequest, res: Response) => {
     const userId = req.user!.id
     const pollId = req.params.id
     const responseId = req.params.responseId
 
-    try {
-        await deleteResponse(userId, pollId, responseId)
-        log.info(
-            {
-                event: 'responses.delete',
-                outcome: 'success',
-                pollId,
-                responseId,
-                targetUserId: userId
-            },
-            'Response deleted'
-        )
-        res.json({ message: 'Response deleted successfully' })
-    } catch (err: any) {
-        if (typeof err?.status === 'number' && err.status < 500) {
-            log.warn(
-                {
-                    event: 'responses.delete',
-                    outcome: 'failure',
-                    pollId,
-                    responseId,
-                    status: err.status
-                },
-                'Delete response failed'
-            )
-            res.status(err.status).json({ message: err.message || 'Error' })
-            return
-        }
-        return next(err)
-    }
+    await deleteResponse(userId, pollId, responseId)
+    req.log?.info(
+        {
+            event: 'responses.delete',
+            outcome: 'success',
+            pollId,
+            responseId,
+            targetUserId: userId
+        },
+        'Response deleted'
+    )
+    res.json({ message: 'Response deleted successfully' })
 }

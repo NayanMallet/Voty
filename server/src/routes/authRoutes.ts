@@ -1,6 +1,11 @@
 import { Router } from 'express'
 
 import auth from '../middleware/auth'
+import { validateBody } from '../middleware/validate'
+import { asyncHandler } from '../middleware/asyncHandler'
+
+import { loginSchema, registerSchema } from '../auth/validators/authValidator'
+import { updateNameSchema, updateEmailSchema, updatePasswordSchema, deleteAccountSchema } from '../auth/validators/userValidator'
 
 import { registerController } from "../auth/controllers/registerController";
 import { loginController } from "../auth/controllers/loginController";
@@ -37,7 +42,7 @@ const router = Router();
  *       400:
  *         $ref: '#/components/schemas/Error'
  */
-router.post('/register', registerController);
+router.post('/register', validateBody(registerSchema), asyncHandler(registerController))
 
 /**
  * @openapi
@@ -64,7 +69,7 @@ router.post('/register', registerController);
  *       400:
  *         $ref: '#/components/schemas/Error'
  */
-router.post('/login', loginController);
+router.post('/login', validateBody(loginSchema), asyncHandler(loginController))
 
 /**
  * @openapi
@@ -84,7 +89,7 @@ router.post('/login', loginController);
  *       401:
  *         $ref: '#/components/schemas/Error'
  */
-router.get('/me', auth, getCurrentUserController);
+router.get('/me', auth, asyncHandler(getCurrentUserController))
 
 /**
  * @openapi
@@ -110,7 +115,7 @@ router.get('/me', auth, getCurrentUserController);
  *       400:
  *         $ref: '#/components/schemas/Error'
  */
-router.put('/update-name', auth, updateNameController);
+router.put('/update-name', auth, validateBody(updateNameSchema), asyncHandler(updateNameController))
 
 /**
  * @openapi
@@ -136,7 +141,7 @@ router.put('/update-name', auth, updateNameController);
  *       400:
  *         $ref: '#/components/schemas/Error'
  */
-router.put('/update-email', auth, updateEmailController);
+router.put('/update-email', auth, validateBody(updateEmailSchema), asyncHandler(updateEmailController))
 
 /**
  * @openapi
@@ -158,7 +163,7 @@ router.put('/update-email', auth, updateEmailController);
  *       400:
  *         $ref: '#/components/schemas/Error'
  */
-router.put('/update-password', auth, updatePasswordController);
+router.put('/update-password', auth, validateBody(updatePasswordSchema), asyncHandler(updatePasswordController))
 
 /**
  * @openapi
@@ -180,6 +185,6 @@ router.put('/update-password', auth, updatePasswordController);
  *       400:
  *         $ref: '#/components/schemas/Error'
  */
-router.delete('/delete-account', auth, deleteAccountController);
+router.delete('/delete-account', auth, validateBody(deleteAccountSchema), asyncHandler(deleteAccountController))
 
 export default router;

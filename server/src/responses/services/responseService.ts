@@ -1,8 +1,8 @@
 import { Types } from 'mongoose'
-
 import Response from '../models/Response'
 import Poll from '../../polls/models/Poll'
 import { SubmitResponseDTO, UpdateResponseDTO } from '../validators/responseValidator'
+import { HttpError } from '../../lib/http_error'
 
 /**
  * Enregistre une nouvelle réponse pour un sondage.
@@ -14,15 +14,18 @@ import { SubmitResponseDTO, UpdateResponseDTO } from '../validators/responseVali
  */
 export async function submitResponse(userId: string, pollId: string, data: SubmitResponseDTO) {
     const poll = await Poll.findById(pollId)
-    if (!poll) throw new Error('Poll not found')
+    if (!poll) throw new HttpError(404, 'Poll not found')
 
     const alreadyAnswered = await Response.findOne({ poll_id: pollId, user_id: userId })
-    if (alreadyAnswered) throw new Error('You have already answered this poll')
+    if (alreadyAnswered) throw new HttpError(409, 'You have already answered this poll')
 
     const response = new Response({
         poll_id: pollId,
         user_id: userId,
-        answers: data.answers
+        answers: data.answers.map(a => ({
+            question_id: new Types.ObjectId(a.question_id),
+            answer: a.answer,
+        })),
     })
 
     return response.save()
@@ -39,14 +42,11 @@ export async function submitResponse(userId: string, pollId: string, data: Submi
  */
 export async function updateResponse(userId: string, pollId: string, responseId: string, data: UpdateResponseDTO) {
     const response = await Response.findById(responseId)
-    if (!response) throw new Error('Response not found')
+    if (!response) throw new HttpError(404, 'Response not found')
 
-    if (
-        response.poll_id.toString() !== pollId ||
-        response.user_id.toString() !== userId
-    ) {
-        throw new Error('Not authorized to update this response')
-    }
+    const samePoll = response.poll_id.toString() === pollId
+    const sameUser = response.user_id.toString() === userId
+    if (!samePoll || !sameUser) throw new HttpError(403, 'Not authorized to update this response')
 
     response.answers = data.answers.map(a => ({
         question_id: new Types.ObjectId(a.question_id),
@@ -65,11 +65,11 @@ export async function updateResponse(userId: string, pollId: string, responseId:
  */
 export async function deleteResponse(userId: string, pollId: string, responseId: string) {
     const poll = await Poll.findById(pollId)
-    if (!poll) throw new Error('Poll not found')
-    if (poll.creator.toString() !== userId) throw new Error('Not authorized')
+    if (!poll) throw new HttpError(404, 'Poll not found')
+    if (poll.creator.toString() !== userId) throw new HttpError(403, 'Not authorized')
 
     const deleted = await Response.findByIdAndDelete(responseId)
-    if (!deleted) throw new Error('Response not found')
+    if (!deleted) throw new HttpError(404, 'Response not found')
 }
 
 /**
@@ -80,8 +80,8 @@ export async function deleteResponse(userId: string, pollId: string, responseId:
  */
 export async function getResponsesByPoll(userId: string, pollId: string) {
     const poll = await Poll.findById(pollId)
-    if (!poll) throw new Error('Poll not found')
-    if (poll.creator.toString() !== userId) throw new Error('Not authorized')
+    if (!poll) throw new HttpError(404, 'Poll not found')
+    if (poll.creator.toString() !== userId) throw new HttpError(403, 'Not authorized')
 
     return Response.find({ poll_id: pollId }).populate('user_id', 'name email').select('-__v')
 }

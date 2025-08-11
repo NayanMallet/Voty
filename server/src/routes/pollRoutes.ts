@@ -1,6 +1,10 @@
 import { Router } from 'express';
 
 import auth from '../middleware/auth';
+import { validateBody } from '../middleware/validate'
+import { asyncHandler } from '../middleware/asyncHandler'
+
+import { createPollSchema, updatePollSchema } from '../polls/validators/pollValidator'
 
 import { getAllPollsController } from "../polls/controllers/getAllPollsController";
 import { getPollByIdController } from "../polls/controllers/getPollByIdController";
@@ -29,7 +33,7 @@ const router = Router();
  *       500:
  *         $ref: '#/components/schemas/Error'
  */
-router.get('/', getAllPollsController);
+router.get('/', asyncHandler(getAllPollsController))
 
 /**
  * @openapi
@@ -53,7 +57,7 @@ router.get('/', getAllPollsController);
  *       404:
  *         $ref: '#/components/schemas/Error'
  */
-router.get('/:id', getPollByIdController);
+router.get('/:id', asyncHandler(getPollByIdController))
 
 /**
  * @openapi
@@ -79,7 +83,7 @@ router.get('/:id', getPollByIdController);
  *       400:
  *         $ref: '#/components/schemas/Error'
  */
-router.post('/', auth, createPollController);
+router.post('/', auth, validateBody(createPollSchema), asyncHandler(createPollController))
 
 /**
  * @openapi
@@ -111,7 +115,7 @@ router.post('/', auth, createPollController);
  *       400:
  *         $ref: '#/components/schemas/Error'
  */
-router.put('/:id', auth, updatePollController);
+router.put('/:id', auth, validateBody(updatePollSchema), asyncHandler(updatePollController))
 
 /**
  * @openapi
@@ -133,7 +137,7 @@ router.put('/:id', auth, updatePollController);
  *       400:
  *         $ref: '#/components/schemas/Error'
  */
-router.delete('/:id', auth, deletePollController);
+router.delete('/:id', auth, asyncHandler(deletePollController))
 
 /**
  * @openapi
@@ -166,6 +170,6 @@ router.delete('/:id', auth, deletePollController);
  *       403:
  *         $ref: '#/components/schemas/Error'
  */
-router.get('/:id/stats', auth, getPollStatsController);
+router.get('/:id/stats', auth, asyncHandler(getPollStatsController))
 
 export default router;

@@ -2,6 +2,7 @@ import Poll from '../models/Poll'
 import { CreatePollDTO, UpdatePollDTO } from '../validators/pollValidator'
 import { PollStatus } from '../enums/PollStatus'
 import { IPoll } from '../interfaces/IPoll'
+import { HttpError } from '../../lib/http_error'
 
 /**
  * Crée un nouveau sondage.
@@ -50,8 +51,8 @@ export async function createPoll(userId: string, data: CreatePollDTO): Promise<I
  */
 export async function updatePoll(pollId: string, userId: string, data: UpdatePollDTO): Promise<IPoll> {
     const poll = await Poll.findById(pollId)
-    if (!poll) throw new Error('Poll not found')
-    if (poll.creator.toString() !== userId) throw new Error('Not authorized')
+    if (!poll) throw new HttpError(404, 'Poll not found')
+    if (poll.creator.toString() !== userId) throw new HttpError(403, 'Not authorized')
 
     if (data.name) poll.name = data.name
     if (data.description !== undefined) poll.description = data.description
@@ -80,8 +81,8 @@ export async function updatePoll(pollId: string, userId: string, data: UpdatePol
  */
 export async function deletePoll(pollId: string, userId: string): Promise<void> {
     const poll = await Poll.findById(pollId)
-    if (!poll) throw new Error('Poll not found')
-    if (poll.creator.toString() !== userId) throw new Error('Not authorized')
+    if (!poll) throw new HttpError(404, 'Poll not found')
+    if (poll.creator.toString() !== userId) throw new HttpError(403, 'Not authorized')
     await poll.deleteOne()
 }
 

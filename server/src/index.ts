@@ -16,7 +16,7 @@ import protectedRoutes from './routes/protectedRoutes';
 import pollRoutes from './routes/pollRoutes';
 import responsesRoutes from "./routes/responsesRoutes";
 
-dotenvFlow.config();
+dotenvFlow.config({ silent: true })
 
 const app = express();
 

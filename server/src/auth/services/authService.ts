@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken'
 import User from '../models/User'
-import { RegisterDTO, LoginDTO } from '../validators/authValidator'
+import type { RegisterDTO, LoginDTO } from '../validators/authValidator'
+import { HttpError } from '../../lib/http_error'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'changeme'
 
@@ -13,7 +14,7 @@ export async function registerUser(data: RegisterDTO): Promise<string> {
     const { name, email, password } = data
 
     let user = await User.findOne({ email })
-    if (user) throw new Error('User already exists')
+    if (user) throw new HttpError(400, 'User already exists')
 
     user = new User({ name, email, password })
     await user.save()
@@ -32,10 +33,10 @@ export async function loginUser(data: LoginDTO): Promise<string> {
     const { email, password } = data
 
     const user = await User.findOne({ email })
-    if (!user) throw new Error('Invalid credentials')
+    if (!user) throw new HttpError(401, 'Invalid credentials')
 
     const isMatch = await user.comparePassword(password)
-    if (!isMatch) throw new Error('Invalid credentials')
+    if (!isMatch) throw new HttpError(401, 'Invalid credentials')
 
     const payload = { user: { id: user._id.toString() } }
 

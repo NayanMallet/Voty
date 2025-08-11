@@ -2,6 +2,11 @@ import { Router } from 'express'
 
 import auth from '../middleware/auth'
 
+import { validateBody } from '../middleware/validate'
+import { asyncHandler } from '../middleware/asyncHandler'
+
+import { submitResponseSchema, updateResponseSchema } from '../responses/validators/responseValidator'
+
 import { submitResponseController } from "../responses/controllers/submitResponseController";
 import { getResponsesByPollController } from "../responses/controllers/getResponsesByPollController";
 import { updateResponseController } from "../responses/controllers/updateResponseController";
@@ -40,7 +45,7 @@ const router = Router();
  *       400:
  *         $ref: '#/components/schemas/Error'
  */
-router.post('/:id/responses', auth, submitResponseController);
+router.post('/:id/responses', auth, validateBody(submitResponseSchema), asyncHandler(submitResponseController))
 
 /**
  * @openapi
@@ -68,7 +73,7 @@ router.post('/:id/responses', auth, submitResponseController);
  *       403:
  *         $ref: '#/components/schemas/Error'
  */
-router.get('/:id/responses', auth, getResponsesByPollController);
+router.get('/:id/responses', auth, asyncHandler(getResponsesByPollController))
 
 /**
  * @openapi
@@ -105,7 +110,7 @@ router.get('/:id/responses', auth, getResponsesByPollController);
  *       400:
  *         $ref: '#/components/schemas/Error'
  */
-router.put('/:id/responses/:responseId', auth, updateResponseController);
+router.put('/:id/responses/:responseId', auth, validateBody(updateResponseSchema), asyncHandler(updateResponseController))
 
 /**
  * @openapi
@@ -132,7 +137,7 @@ router.put('/:id/responses/:responseId', auth, updateResponseController);
  *       400:
  *         $ref: '#/components/schemas/Error'
  */
-router.delete('/:id/responses/:responseId', auth, deleteResponseController);
+router.delete('/:id/responses/:responseId', auth, asyncHandler(deleteResponseController))
 
 /**
  * @openapi
@@ -158,6 +163,6 @@ router.delete('/:id/responses/:responseId', auth, deleteResponseController);
  *       404:
  *         $ref: '#/components/schemas/Error'
  */
-router.get('/users/me/responses/:pollId', auth, getUserResponseForPollController);
+router.get('/users/me/responses/:pollId', auth, asyncHandler(getUserResponseForPollController))
 
 export default router;

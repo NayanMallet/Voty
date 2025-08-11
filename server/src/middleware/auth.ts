@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken'
-import { Request, Response, NextFunction } from 'express'
+import type { Request, Response, NextFunction } from 'express'
+import { HttpError } from '../lib/http_error'
 
 interface JwtPayload {
     user: {
@@ -13,30 +14,20 @@ export interface AuthenticatedRequest extends Request {
 
 const auth = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     const token = req.header('Authorization')?.replace('Bearer ', '')
-    if (!token) {
-        res.status(401).json({ message: 'No token, authorization denied' })
-        return
-    }
+    if (!token) return next(new HttpError(401, 'No token, authorization denied'))
 
     try {
         const secret = process.env.JWT_SECRET;
-        if (!secret) {
-            throw new Error("JWT_SECRET is not defined in environment variables");
-        }
+        if (!secret) throw new Error('JWT_SECRET is not defined')
 
         const decoded = jwt.verify(token, secret) as JwtPayload;
 
-        if (!decoded.user || !decoded.user.id) {
-            console.error('Invalid token structure:', decoded)
-            res.status(401).json({ message: 'Invalid token structure' })
-            return
-        }
+        if (!decoded.user?.id) return next(new HttpError(401, 'Invalid token structure'))
 
         req.user = decoded.user
         next()
-    } catch (err) {
-        console.error('Token verification error:', (err as Error).message)
-        res.status(401).json({ message: 'Token is not valid' })
+    } catch (_e) {
+        next(new HttpError(401, 'Token is not valid'))
     }
 }
 

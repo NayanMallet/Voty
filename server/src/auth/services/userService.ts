@@ -5,6 +5,7 @@ import {
     UpdatePasswordDTO,
     DeleteAccountDTO
 } from '../validators/userValidator'
+import { HttpError } from '../../lib/http_error'
 
 /**
  * Service pour mettre à jour le nom de l'utilisateur.
@@ -14,7 +15,7 @@ import {
  */
 export async function updateName(userId: string, data: UpdateNameDTO) {
     const user = await User.findByIdAndUpdate(userId, { name: data.name }, { new: true }).select('-password')
-    if (!user) throw new Error('User not found')
+    if (!user) throw new HttpError(404, 'User not found')
     return user
 }
 
@@ -26,13 +27,13 @@ export async function updateName(userId: string, data: UpdateNameDTO) {
  */
 export async function updateEmail(userId: string, data: UpdateEmailDTO) {
     const user = await User.findById(userId)
-    if (!user) throw new Error('User not found')
+    if (!user) throw new HttpError(404, 'User not found')
 
     const isMatch = await user.comparePassword(data.password)
-    if (!isMatch) throw new Error('Invalid credentials')
+    if (!isMatch) throw new HttpError(401, 'Invalid credentials')
 
     const existing = await User.findOne({ email: data.email })
-    if (existing && existing.id !== user.id) throw new Error('User already exists')
+    if (existing && existing.id !== user.id) throw new HttpError(400, 'User already exists')
 
     user.email = data.email
     await user.save()
@@ -47,10 +48,10 @@ export async function updateEmail(userId: string, data: UpdateEmailDTO) {
  */
 export async function updatePassword(userId: string, data: UpdatePasswordDTO) {
     const user = await User.findById(userId)
-    if (!user) throw new Error('User not found')
+    if (!user) throw new HttpError(404, 'User not found')
 
     const isMatch = await user.comparePassword(data.currentPassword)
-    if (!isMatch) throw new Error('Invalid credentials')
+    if (!isMatch) throw new HttpError(401, 'Invalid credentials')
 
     user.password = data.newPassword
     await user.save()
@@ -63,10 +64,10 @@ export async function updatePassword(userId: string, data: UpdatePasswordDTO) {
  */
 export async function deleteAccount(userId: string, data: DeleteAccountDTO) {
     const user = await User.findById(userId)
-    if (!user) throw new Error('User not found')
+    if (!user) throw new HttpError(404, 'User not found')
 
     const isMatch = await user.comparePassword(data.password)
-    if (!isMatch) throw new Error('Invalid credentials')
+    if (!isMatch) throw new HttpError(401, 'Invalid credentials')
 
     await User.findByIdAndDelete(userId)
 }
