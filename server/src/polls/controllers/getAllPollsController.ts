@@ -1,15 +1,24 @@
-import { Request, Response } from 'express'
+import { Request, Response, NextFunction } from 'express'
 import { getAllPolls } from '../services/pollService'
 
 /**
- * Controller pour récupérer tous les sondages.
+ * Récupère tous les sondages.
  */
-export const getAllPollsController = async (_req: Request, res: Response): Promise<void> => {
+export const getAllPollsController = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    const log = req.log || console
     try {
         const polls = await getAllPolls()
-        res.json({ polls });
-    } catch (error) {
-        console.error('[getAllPollsController]', (error as Error).message)
-        res.status(500).json({ message: 'Server error' })
+
+        log.info(
+            { event: 'polls.list', outcome: 'success', count: polls.length },
+            'Fetched all polls'
+        )
+        res.json({ polls })
+    } catch (err) {
+        return next(err) // errorHandler => 500 + log.error
     }
 }

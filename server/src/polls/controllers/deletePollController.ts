@@ -1,16 +1,44 @@
-import { Response } from 'express'
+import { Response, NextFunction } from 'express'
 import { deletePoll } from '../services/pollService'
 import { AuthenticatedRequest } from '../../middleware/auth'
 
 /**
- * Controller pour supprimer un sondage.
+ * Supprime un sondage.
  */
-export const deletePollController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const deletePollController = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    const log = req.log || console
+    const pollId = req.params.id
     try {
-        await deletePoll(req.params.id, req.user!.id)
+        await deletePoll(pollId, req.user!.id)
+
+        log.info(
+            {
+                event: 'polls.delete',
+                outcome: 'success',
+                pollId,
+                targetUserId: req.user!.id
+            },
+            'Poll deleted'
+        )
         res.json({ message: 'Poll deleted' })
-    } catch (error) {
-        console.error('[deletePollController]', (error as Error).message)
-        res.status(400).json({ message: (error as Error).message })
+    } catch (err: any) {
+        if (typeof err?.status === 'number' && err.status < 500) {
+            log.warn(
+                {
+                    event: 'polls.delete',
+                    outcome: 'failure',
+                    status: err.status,
+                    pollId
+                },
+                'Poll deletion failed'
+            )
+            res.status(err.status).json({ message: err.message || 'Error' })
+            return
+        }
+        return next(err)
     }
 }

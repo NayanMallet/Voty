@@ -1,21 +1,33 @@
-import { Request, Response } from 'express'
+import { Request, Response, NextFunction } from 'express'
 import { getPollById } from '../services/pollService'
 
 /**
- * Controller pour récupérer un sondage par ID.
+ * Récupère un sondage par ID.
  */
-export const getPollByIdController = async (req: Request, res: Response): Promise<void> => {
+export const getPollByIdController = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    const log = req.log || console
+    const pollId = req.params.id
     try {
-        const poll = await getPollById(req.params.id)
+        const poll = await getPollById(pollId)
 
         if (!poll) {
+            log.warn(
+                { event: 'polls.get', outcome: 'not_found', pollId },
+                'Poll not found'
+            )
             res.status(404).json({ message: 'Poll not found' })
             return
         }
-
-        res.json({ poll });
-    } catch (error) {
-        console.error('[getPollByIdController]', (error as Error).message)
-        res.status(500).json({ message: 'Server error' })
+        log.info(
+            { event: 'polls.get', outcome: 'success', pollId },
+            'Fetched poll by id'
+        )
+        res.json({ poll })
+    } catch (err) {
+        return next(err)
     }
 }
