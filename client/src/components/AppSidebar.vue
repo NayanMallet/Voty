@@ -1,19 +1,18 @@
-<script setup>
-import { ArchiveX, Command, File, FilePlus, Trash2 } from 'lucide-vue-next'
-import { h, onMounted, ref, computed } from 'vue'
+<script setup lang="ts">
+import { Command, File, FilePlus } from 'lucide-vue-next'
+import { h, onMounted, ref, computed, type Component } from 'vue'
 import NavUser from '@/components/NavUser.vue'
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarHeader,
-  SidebarInput,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarHeader,
+    SidebarInput,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -22,36 +21,38 @@ import { usePolls } from '@/stores/polls'
 import { useAuth } from '@/stores/auth'
 import { vAutoAnimate } from '@formkit/auto-animate/vue'
 import CreateFormDialog from '@/components/polls/CreateFormDialog.vue'
+import type { Poll } from '@/types/poll'
+import { useRouter } from 'vue-router'
 
+type NavItem = { title: string; icon: Component }
+
+const router = useRouter()
 const auth = useAuth()
 const polls = usePolls()
+
 const search = ref('')
 const showClosed = ref(false)
 
-onMounted(() => {
-  polls.fetchPolls()
-})
+onMounted(() => { void polls.fetchPolls() })
 
-const filteredPolls = computed(() =>
-    polls.all.filter(p =>
-        p.name.toLowerCase().includes(search.value.toLowerCase()) &&
+const filteredPolls = computed<Poll[]>(() =>
+    polls.all.filter((p: Poll) =>
+        (p.name ?? '').toLowerCase().includes(search.value.toLowerCase()) &&
         (showClosed.value ? p.status === 'closed' : p.status === 'opened')
     )
 )
 
-function handleSelectPoll(poll) {
-  polls.selectPoll(poll)
-
-  // Remplace l'URL sans reload
-  const url = `/polls/${auth.user?.name || 'user'}/${poll._id}`
-  window.history.replaceState({}, '', url)
+function handleSelectPoll(poll: Poll) {
+    polls.selectPoll(poll)
+    const username =
+        typeof poll.creator === 'string'
+            ? (auth.user?.name ?? 'user')
+            : (poll.creator?.name ?? 'user')
+    router.replace({ name: 'poll-view', params: { username, pollId: poll._id } })
 }
 
-
-const navMain = ref([
-  { title: 'Forms', icon: File },
-])
-const activeItem = ref(navMain.value[0])
+const navMain = ref<NavItem[]>([{ title: 'Forms', icon: File }])
+const activeItem = ref<NavItem>(navMain.value[0]!)
 </script>
 
 <template>
@@ -102,7 +103,7 @@ const activeItem = ref(navMain.value[0])
       </SidebarContent>
 
       <SidebarFooter>
-        <NavUser :user="auth.user" />
+          <NavUser :user="auth.user ?? undefined" />
       </SidebarFooter>
     </Sidebar>
 
@@ -149,7 +150,7 @@ const activeItem = ref(navMain.value[0])
                 :key="poll._id"
                 :poll="poll"
                 :selected="polls.selected?._id === poll._id"
-                @click="polls.selectPoll(poll)"
+                @click="handleSelectPoll(poll)"
             />
           </SidebarGroupContent>
         </SidebarGroup>

@@ -1,47 +1,34 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/stores/auth'
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardFooter
+    Card, CardContent, CardHeader, CardTitle, CardFooter
 } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import type { Poll, Question } from '@/types/poll'
 
-const props = defineProps({
-  poll: {
-    type: Object,
-    required: true
-  },
-  userResponse: {
-    type: Object,
-    default: null
-  }
-})
+type UserAnswer = { question_id: string; answer: string | string[] }
+type UserResponse = { answers?: UserAnswer[] } | null
+
+const props = defineProps<{
+    poll: Poll
+    userResponse?: UserResponse
+}>()
 
 const router = useRouter()
-const auth   = useAuth()
+const auth = useAuth()
 
-// On mappe chaque réponse à sa question correspondante
-const answers = computed(() => {
-  if (!props.userResponse?.answers || !props.poll?.questions) {
-    return []
-  }
-  return props.userResponse.answers.map(r => {
-    // conversion en string pour comparer correctement ObjectId et string
-    const q = props.poll.questions.find(
-        q => q._id.toString() === r.question_id.toString()
-    )
-    return {
-      question: q,
-      value: r.answer
-    }
-  })
+const answers = computed<{ question?: Question; value: string | string[] }[]>(() => {
+    if (!props.userResponse?.answers || !props.poll?.questions) return []
+    return props.userResponse.answers.map((r) => {
+        const q = props.poll.questions.find(
+            (q) => q._id?.toString() === (r.question_id as unknown as string)?.toString()
+        )
+        return { question: q, value: r.answer }
+    })
 })
 
 const isFormClosed = computed(() => props.poll.status === 'closed')

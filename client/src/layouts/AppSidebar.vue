@@ -1,20 +1,24 @@
-<script setup>
+<script setup lang="ts">
 import { Input } from '@/components/ui/input'
 import CreateFormDialog from '@/components/polls/CreateFormDialog.vue'
 import { Card, CardContent, CardTitle } from '@/components/ui/card'
 import { vAutoAnimate } from '@formkit/auto-animate/vue'
 import { computed } from 'vue'
+import type { Poll } from '@/types/poll'
 
-const props = defineProps({
-  polls: Array,
-  search: String,
-  onSelect: Function
-})
-const emit = defineEmits(['update:search'])
+const props = defineProps<{
+    polls: Poll[]
+    search?: string
+    onSelect: (poll: Poll) => void
+}>()
 
-const searchValue = computed({
-  get: () => props.search,
-  set: (val) => emit('update:search', val)
+const emit = defineEmits<{
+    (e: 'update:search', v: string): void
+}>()
+
+const searchValue = computed<string>({
+    get: () => props.search ?? '',
+    set: (val) => emit('update:search', val),
 })
 </script>
 

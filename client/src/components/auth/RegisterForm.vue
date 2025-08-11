@@ -1,64 +1,50 @@
-<script setup>
+<script setup lang="ts">
 import { ref, h } from 'vue'
 import { useForm } from 'vee-validate'
 import { z } from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
 import { vAutoAnimate } from '@formkit/auto-animate/vue'
-import { useAuth } from '@/stores/auth.js'
-import { toast } from '@/components/ui/toast/index.js'
-import { Input } from '@/components/ui/input/index.js'
-import { Button } from '@/components/ui/button/index.js'
-import {
-  Alert,
-  AlertTitle,
-  AlertDescription,
-} from '@/components/ui/alert/index.js'
-import {
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-} from '@/components/ui/form/index.js'
+import { useAuth } from '@/stores/auth'
+import { toast } from '@/components/ui/toast'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
 
 const auth = useAuth()
 const errorMessage = ref('')
 
 const registerSchema = toTypedSchema(z.object({
-  name: z.string().min(2, 'Nom trop court'),
-  email: z.string().email({ message: 'Email invalide' }),
-  password: z.string().min(6, 'Mot de passe trop court'),
+    name: z.string().min(2, 'Nom trop court'),
+    email: z.string().email({ message: 'Email invalide' }),
+    password: z.string().min(6, 'Mot de passe trop court'),
 }))
 
-const form = useForm({
-  validationSchema: registerSchema,
-  validateOnInput: true,
+const form = useForm<{ name: string; email: string; password: string }>({
+    validationSchema: registerSchema,
 })
 
 const onSubmit = form.handleSubmit(async (values) => {
-  errorMessage.value = '' // Clear previous error
-  try {
-    await auth.register(values.name, values.email, values.password)
-    toast({
-      title: 'Compte créé',
-      description: h('span', {}, `Bienvenue ${values.name} !`),
-    })
-  } catch (err) {
-    console.error('Registration error:', err)
-    // Check if the error is because the user already exists
-    if (err.response && err.response.data && err.response.data.message === 'User already exists') {
-      errorMessage.value = 'Un compte avec cet email existe déjà'
-    } else {
-      errorMessage.value = 'Impossible de créer le compte'
+    errorMessage.value = ''
+    try {
+        await auth.register(values.name, values.email, values.password)
+        toast({
+            title: 'Compte créé',
+            description: h('span', {}, `Bienvenue ${values.name} !`),
+        })
+    } catch (err: any) {
+        console.error('Registration error:', err)
+        if (err?.response?.data?.message === 'User already exists') {
+            errorMessage.value = 'Un compte avec cet email existe déjà'
+        } else {
+            errorMessage.value = 'Impossible de créer le compte'
+        }
+        toast({
+            title: 'Erreur',
+            description: errorMessage.value,
+            variant: 'destructive',
+        })
     }
-
-    // Still show toast for accessibility
-    toast({
-      title: 'Erreur',
-      description: errorMessage.value,
-      variant: 'destructive',
-    })
-  }
 })
 </script>
 

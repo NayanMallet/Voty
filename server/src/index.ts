@@ -3,6 +3,7 @@ import dotenvFlow from 'dotenv-flow';
 import cors from 'cors';
 import helmet from 'helmet';
 import { xss } from 'express-xss-sanitizer';
+import { env } from './config/env';
 
 import connectDB from './config/connectDB';
 import { setupSwagger } from './config/swagger';
@@ -33,7 +34,7 @@ app.use(attachRequestLogger);
 
 // CORS sécurisé
 app.use(cors({
-    origin: process.env.CLIENT_URL || '*',
+    origin: env.CLIENT_URL || '*',
     credentials: true,
 }));
 
@@ -44,11 +45,10 @@ app.use('/api/polls', pollRoutes);
 app.use('/api/polls', responsesRoutes);
 
 // Server
-if (process.env.NODE_ENV !== 'test') {
+if (env.NODE_ENV !== 'test') {
     connectDB();
     setupSwagger(app);
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+    app.listen(env.PORT, () => console.log(`🚀 Server running on http://localhost:${env.PORT}`));
 }
 
 // 🚑 ALWAYS last

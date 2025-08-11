@@ -1,59 +1,32 @@
-<script setup>
+<script setup lang="ts">
+import { User2, ChevronsUpDown, LogOut } from 'lucide-vue-next'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
-  User2,
-  Bell,
-  ChevronsUpDown,
-  LogOut,
-} from 'lucide-vue-next'
-
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from '@/components/ui/avatar'
-
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
+    DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-
 import {
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
+    SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar
 } from '@/components/ui/sidebar'
-
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuth } from '@/stores/auth.js'
+import { useAuth } from '@/stores/auth'
 
-const props = defineProps({
-  user: { type: Object, required: false, default: () => ({}) },
-})
+type BasicUser = { name?: string; email?: string }
 
+const props = defineProps<{ user?: BasicUser }>()
 const auth = useAuth()
 const router = useRouter()
 const { isMobile } = useSidebar()
 
-const fullName = computed(() => props.user?.name || 'Utilisateur')
-const email = computed(() => props.user?.email || 'loading@example.com')
-const initial = computed(() => fullName.value[0] || 'U')
+const fullName = computed<string>(() => props.user?.name || 'Utilisateur')
+const email = computed<string>(() => props.user?.email || 'loading@example.com')
+const initial = computed<string>(() => (fullName.value?.[0] || 'U').toUpperCase())
 
-const handleLogout = () => {
-  auth.logout()
-}
+const handleLogout = () => { auth.logout() }
+const navigateToAccount = () => { router.push('/account') }
 
-const navigateToAccount = () => {
-  router.push('/account')
-}
-
-const avatarUrl = computed(() =>
+const avatarUrl = computed<string>(() =>
     email.value
         ? `https://unavatar.io/${email.value}?fallback=https://avatar.vercel.sh/${fullName.value}?size=128`
         : ''

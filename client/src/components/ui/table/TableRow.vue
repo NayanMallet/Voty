@@ -1,20 +1,14 @@
-<script setup>
-import { cn } from '@/lib/utils';
+<script setup lang="ts">
+import type { HTMLAttributes } from "vue"
+import { cn } from "@/lib/utils"
 
-const props = defineProps({
-  class: { type: null, required: false },
-});
+const props = defineProps<{
+  class?: HTMLAttributes["class"]
+}>()
 </script>
 
 <template>
-  <tr
-    :class="
-      cn(
-        'border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted',
-        props.class,
-      )
-    "
-  >
+  <tr :class="cn('border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted', props.class)">
     <slot />
   </tr>
 </template>

@@ -1,45 +1,42 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
+import type { QuestionSubType } from '@/types/poll'
 
-const emit = defineEmits(['add'])
+type Kind = 'text' | 'multi'
+
+const emit = defineEmits<{
+    (e: 'add', payload: { type: Kind; subType: QuestionSubType; label: string }): void
+}>()
 
 const popoverOpen = ref(false)
-const type = ref('text')
-const subType = ref('short')
+const type = ref<Kind>('text')
+const subType = ref<QuestionSubType>('short')
 
 const textOptions = [
-  { label: 'Short answer', value: 'short' },
-  { label: 'Paragraph', value: 'paragraph' },
-  { label: 'Date', value: 'date' }
+    { label: 'Short answer', value: 'short' as const },
+    { label: 'Paragraph', value: 'paragraph' as const },
+    { label: 'Date', value: 'date' as const },
 ]
 
 const multiOptions = [
-  { label: 'Single choice', value: 'single' },
-  { label: 'Multiple choices', value: 'multiple' }
+    { label: 'Single choice', value: 'single' as const },
+    { label: 'Multiple choices', value: 'multiple' as const },
 ]
 
-const currentOptions = computed(() => {
-  return type.value === 'text' ? textOptions : multiOptions
-})
+const currentOptions = computed(() => (type.value === 'text' ? textOptions : multiOptions))
 
-// Reset subType when type changes
 watch(type, (newType) => {
-  subType.value = newType === 'text' ? 'short' : 'single'
+    subType.value = newType === 'text' ? 'short' : 'single'
 })
 
 function addQuestion() {
-  if (!subType.value) return
-
-  emit('add', {
-    type: type.value,
-    subType: subType.value,
-    label: ''
-  })
-  popoverOpen.value = false
+    if (!subType.value) return
+    emit('add', { type: type.value, subType: subType.value, label: '' })
+    popoverOpen.value = false
 }
 </script>
 

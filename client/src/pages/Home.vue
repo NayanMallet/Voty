@@ -1,22 +1,14 @@
-<script setup>
-import AppSidebar from '@/components/AppSidebar.vue';
+<script setup lang="ts">
+import AppSidebar from '@/components/AppSidebar.vue'
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb/index.js';
-import { Separator } from '@/components/ui/separator/index.js';
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from '@/components/ui/sidebar/index.js';
-
+    Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
+    BreadcrumbPage, BreadcrumbSeparator
+} from '@/components/ui/breadcrumb'
+import { Separator } from '@/components/ui/separator'
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { usePolls } from '@/stores/polls'
 import PollView from '@/components/polls/PollView.vue'
+
 const polls = usePolls()
 </script>
 

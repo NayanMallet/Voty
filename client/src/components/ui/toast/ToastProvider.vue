@@ -1,12 +1,8 @@
-<script setup>
-import { ToastProvider } from 'reka-ui';
+<script setup lang="ts">
+import type { ToastProviderProps } from "reka-ui"
+import { ToastProvider } from "reka-ui"
 
-const props = defineProps({
-  label: { type: String, required: false },
-  duration: { type: Number, required: false },
-  swipeDirection: { type: String, required: false },
-  swipeThreshold: { type: Number, required: false },
-});
+const props = defineProps<ToastProviderProps>()
 </script>
 
 <template>

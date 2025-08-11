@@ -12,13 +12,13 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb/index.js';
-import { Separator } from '@/components/ui/separator/index.js';
+} from '@/components/ui/breadcrumb';
+import { Separator } from '@/components/ui/separator';
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from '@/components/ui/sidebar/index.js';
+} from '@/components/ui/sidebar';
 </script>
 
 <template>

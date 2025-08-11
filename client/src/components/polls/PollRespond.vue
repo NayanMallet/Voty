@@ -1,5 +1,5 @@
-<script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+<script setup lang="ts">
+import { ref, computed, onMounted, nextTick, type Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/stores/auth'
 import api from '@/services/axios'
@@ -14,112 +14,105 @@ import { Textarea } from '@/components/ui/textarea'
 import PollCarousel from '@/components/polls/PollCarousel.vue'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Rocket } from 'lucide-vue-next'
+import type { Poll } from '@/types/poll'
+import { assertDefined } from '@/utils/assert'
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuth()
 
-const poll = ref(null)
-const answers = ref([])
+const poll = ref<Poll | null>(null)
+const answers: Ref<(string | string[])[]> = ref([])
 const loading = ref(true)
 const currentIndex = ref(0)
 const showSuccess = ref(false)
 const isSubmitting = ref(false)
 
 function initAnswers() {
-  answers.value = poll.value.questions.map(q =>
-      q.type === 'multiple_choice'
-          ? (q.subType === 'single' ? '' : [])
-          : ''
-  )
+    assertDefined(poll.value)
+    answers.value = poll.value.questions.map(q =>
+        q.type === 'multiple_choice'
+            ? (q.subType === 'single' ? '' : [])
+            : ''
+    )
 }
 
 onMounted(async () => {
-  if (!auth.isAuthenticated) {
-    router.push({ name: 'login', query: { redirect: route.fullPath }})
-    return
-  }
-
-  const { pollId } = route.params
-  const res = await api.get(`/polls/${pollId}`)
-  poll.value = res.data
-  initAnswers()
-  await nextTick()
-  loading.value = false
+    if (!auth.isAuthenticated) {
+        await router.push({ name: 'login', query: { redirect: route.fullPath } })
+        return
+    }
+    const pollId = route.params.pollId as string
+    assertDefined(pollId, 'Missing pollId')
+    const res = await api.get(`/polls/${pollId}`)
+    poll.value = res.data as Poll
+    initAnswers()
+    await nextTick()
+    loading.value = false
 })
 
-function toggleCheckbox(index, option, checked) {
-  if (!Array.isArray(answers.value[index])) {
-    answers.value[index] = []
-  }
-
-  const arr = [...answers.value[index]]
-
-  if (checked) {
-    if (!arr.includes(option)) arr.push(option)
-  } else {
-    const i = arr.indexOf(option)
-    if (i !== -1) arr.splice(i, 1)
-  }
-
-  answers.value[index] = [...arr]
+function toggleCheckbox(index: number, option: string, checked: boolean) {
+    const current = answers.value[index]
+    if (!Array.isArray(current)) {
+        answers.value[index] = []
+    }
+    const arr = Array.isArray(answers.value[index]) ? [...(answers.value[index] as string[])] : []
+    if (checked) {
+        if (!arr.includes(option)) arr.push(option)
+    } else {
+        const i = arr.indexOf(option)
+        if (i !== -1) arr.splice(i, 1)
+    }
+    answers.value[index] = arr
 }
 
 const allAnswered = computed(() => {
-  return poll.value.questions.every((q, i) => {
-    const a = answers.value[i]
-    if (q.type === 'multiple_choice') {
-      if (q.subType === 'single') {
-        return !!a
-      } else {
-        return Array.isArray(a) && a.length > 0
-      }
-    } else {
-      return a && a.trim() !== ''
-    }
-  })
+    if (!poll.value) return false
+    return poll.value.questions.every((q, i) => {
+        const a = answers.value[i]
+        if (q.type === 'multiple_choice') {
+            return q.subType === 'single' ? !!a : (Array.isArray(a) && a.length > 0)
+        }
+        return typeof a === 'string' && a.trim() !== ''
+    })
 })
 
 const answeredCount = computed(() => {
-  return poll.value.questions.reduce((count, q, i) => {
-    const a = answers.value[i]
-    if (q.type === 'multiple_choice') {
-      if (q.subType === 'single') {
-        return count + (a ? 1 : 0)
-      } else {
-        return count + (Array.isArray(a) && a.length > 0 ? 1 : 0)
-      }
-    } else {
-      return count + ((a && a.trim()) ? 1 : 0)
-    }
-  }, 0)
+    if (!poll.value) return 0
+    return poll.value.questions.reduce((count, q, i) => {
+        const a = answers.value[i]
+        if (q.type === 'multiple_choice') {
+            return count + (q.subType === 'single' ? (a ? 1 : 0) : (Array.isArray(a) && a.length > 0 ? 1 : 0))
+        }
+        return count + ((typeof a === 'string' && a.trim()) ? 1 : 0)
+    }, 0)
 })
 
 async function submit() {
-  if (!allAnswered.value) {
-    toast({ title: 'Formulaire incomplet', variant: 'destructive' })
-    return
-  }
-
-  try {
-    isSubmitting.value = true
-    await api.post(`/polls/${poll.value._id}/responses`, {
-      answers: poll.value.questions.map((q, i) => ({
-        question_id: q._id,
-        answer: answers.value[i],
-      }))
-    })
-    showSuccess.value = true
-    setTimeout(() => router.push('/home'), 3000)
-  } catch {
-    toast({ title: 'Erreur d’envoi', variant: 'destructive' })
-    isSubmitting.value = false
-  }
+    if (!poll.value) return
+    if (!allAnswered.value) {
+        toast({ title: 'Formulaire incomplet', variant: 'destructive' })
+        return
+    }
+    try {
+        isSubmitting.value = true
+        await api.post(`/polls/${poll.value._id}/responses`, {
+            answers: poll.value.questions.map((q, i) => ({
+                question_id: q._id,
+                answer: answers.value[i],
+            }))
+        })
+        showSuccess.value = true
+        setTimeout(() => { void router.push('/home') }, 3000)
+    } catch {
+        toast({ title: 'Erreur d’envoi', variant: 'destructive' })
+        isSubmitting.value = false
+    }
 }
 </script>
 
 <template>
-  <div v-if="!loading" v-auto-animate class="w-full">
+  <div v-if="!loading && poll" v-auto-animate class="w-full">
     <!-- Success Dialog -->
     <Dialog v-model:open="showSuccess">
       <DialogContent class="text-center">
@@ -164,11 +157,11 @@ async function submit() {
                 :key="i2"
                 class="flex items-center gap-2"
             >
-              <Checkbox
-                  :model-value="Array.isArray(answers[index]) && answers[index].includes(opt)"
-                  @update:modelValue="val => toggleCheckbox(index, opt, val)"
-                  :id="`q${index}-cb${i2}`"
-              />
+                <Checkbox
+                    :model-value="Array.isArray(answers[index]) && (answers[index] as string[]).includes(opt)"
+                    @update:modelValue="val => toggleCheckbox(index, opt, val as boolean)"
+                    :id="`q${index}-cb${i2}`"
+                />
               <Label :for="`q${index}-cb${i2}`">{{ opt }}</Label>
             </div>
           </div>
@@ -178,13 +171,13 @@ async function submit() {
         <div v-else>
           <Input
               v-if="question.subType === 'short'"
-              v-model="answers[index]"
+              v-model="(answers[index] as string)"
               placeholder="Votre réponse"
               class="w-full"
           />
           <Textarea
               v-else
-              v-model="answers[index]"
+              v-model="(answers[index] as string)"
               placeholder="Votre réponse…"
               rows="4"
               class="w-full"

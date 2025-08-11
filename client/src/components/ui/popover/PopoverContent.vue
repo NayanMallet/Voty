@@ -1,46 +1,31 @@
-<script setup>
-import { reactiveOmit } from '@vueuse/core';
-import { PopoverContent, PopoverPortal, useForwardPropsEmits } from 'reka-ui';
-import { cn } from '@/lib/utils';
+<script setup lang="ts">
+import type { PopoverContentEmits, PopoverContentProps } from "reka-ui"
+import type { HTMLAttributes } from "vue"
+import { reactiveOmit } from "@vueuse/core"
+import {
+  PopoverContent,
+
+  PopoverPortal,
+  useForwardPropsEmits,
+} from "reka-ui"
+import { cn } from "@/lib/utils"
 
 defineOptions({
   inheritAttrs: false,
-});
+})
 
-const props = defineProps({
-  forceMount: { type: Boolean, required: false },
-  side: { type: null, required: false },
-  sideOffset: { type: Number, required: false, default: 4 },
-  align: { type: null, required: false, default: 'center' },
-  alignOffset: { type: Number, required: false },
-  avoidCollisions: { type: Boolean, required: false },
-  collisionBoundary: { type: null, required: false },
-  collisionPadding: { type: [Number, Object], required: false },
-  arrowPadding: { type: Number, required: false },
-  sticky: { type: String, required: false },
-  hideWhenDetached: { type: Boolean, required: false },
-  positionStrategy: { type: String, required: false },
-  updatePositionStrategy: { type: String, required: false },
-  disableUpdateOnLayoutShift: { type: Boolean, required: false },
-  prioritizePosition: { type: Boolean, required: false },
-  reference: { type: null, required: false },
-  asChild: { type: Boolean, required: false },
-  as: { type: null, required: false },
-  disableOutsidePointerEvents: { type: Boolean, required: false },
-  class: { type: null, required: false },
-});
-const emits = defineEmits([
-  'escapeKeyDown',
-  'pointerDownOutside',
-  'focusOutside',
-  'interactOutside',
-  'openAutoFocus',
-  'closeAutoFocus',
-]);
+const props = withDefaults(
+  defineProps<PopoverContentProps & { class?: HTMLAttributes["class"] }>(),
+  {
+    align: "center",
+    sideOffset: 4,
+  },
+)
+const emits = defineEmits<PopoverContentEmits>()
 
-const delegatedProps = reactiveOmit(props, 'class');
+const delegatedProps = reactiveOmit(props, "class")
 
-const forwarded = useForwardPropsEmits(delegatedProps, emits);
+const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
 
 <template>

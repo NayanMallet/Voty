@@ -1,16 +1,18 @@
-<script setup>
-import { reactiveOmit } from '@vueuse/core';
-import { ChevronDown } from 'lucide-vue-next';
-import { AccordionHeader, AccordionTrigger } from 'reka-ui';
-import { cn } from '@/lib/utils';
+<script setup lang="ts">
+import type { AccordionTriggerProps } from "reka-ui"
+import type { HTMLAttributes } from "vue"
+import { reactiveOmit } from "@vueuse/core"
+import { ChevronDown } from "lucide-vue-next"
+import {
+  AccordionHeader,
+  AccordionTrigger,
 
-const props = defineProps({
-  asChild: { type: Boolean, required: false },
-  as: { type: null, required: false },
-  class: { type: null, required: false },
-});
+} from "reka-ui"
+import { cn } from "@/lib/utils"
 
-const delegatedProps = reactiveOmit(props, 'class');
+const props = defineProps<AccordionTriggerProps & { class?: HTMLAttributes["class"] }>()
+
+const delegatedProps = reactiveOmit(props, "class")
 </script>
 
 <template>

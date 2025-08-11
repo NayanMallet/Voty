@@ -1,7 +1,10 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref } from 'vue'
 import { usePolls } from '@/stores/polls'
-import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription, DialogHeader, DialogFooter } from '@/components/ui/dialog'
+import {
+    Dialog, DialogContent, DialogTrigger, DialogTitle,
+    DialogDescription, DialogHeader, DialogFooter
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Loader2, Trash2, AlertCircle } from 'lucide-vue-next'
@@ -9,63 +12,62 @@ import { toast } from '@/components/ui/toast'
 import { Badge } from '@/components/ui/badge'
 import { Avatar } from '@/components/ui/avatar'
 import PollCarousel from '@/components/polls/PollCarousel.vue'
+import type { Poll, PollStats as PollStatsType } from '@/types/poll'
+import { assertDefined } from '@/utils/assert'
 
-const props = defineProps({
-  poll: Object
-})
+const props = defineProps<{ poll: Poll }>()
 
 const polls = usePolls()
-const stats = computed(() => polls.stats)
+const stats = computed<PollStatsType | null>(() => polls.stats as PollStatsType | null)
 
-// For dialog management
-const showDetails = ref({})
-const toggleDialog = (id) => {
-  showDetails.value[id] = !showDetails.value[id]
-}
+const showDetails = ref<Record<string, boolean>>({})
+const toggleDialog = (id: string) => { showDetails.value[id] = !showDetails.value[id] }
 
-// Confirmation dialog for response deletion
 const showDeleteConfirm = ref(false)
-const responseToDelete = ref(null)
-const questionIdForDelete = ref(null)
+const responseToDelete  = ref<string | null>(null)
+const questionIdForDelete = ref<string | null>(null)
 
-// loader local par réponse
-const deleting = ref({})
+const deleting = ref<Record<string, boolean>>({})
 
-const confirmDeleteResponse = (responseId, questionId) => {
-  responseToDelete.value = responseId
-  questionIdForDelete.value = questionId
-  showDeleteConfirm.value = true
+function confirmDeleteResponse(responseId: string, questionId: string) {
+    responseToDelete.value = responseId
+    questionIdForDelete.value = questionId
+    showDeleteConfirm.value = true
 }
 
-const deleteAnswer = async () => {
-  if (!props.poll?._id || !responseToDelete.value) return
+async function deleteAnswer() {
+    assertDefined(props.poll?._id, 'poll id missing')
+    assertDefined(responseToDelete.value, 'response id missing')
 
-  deleting.value[responseToDelete.value] = true
-  try {
-    await polls.deleteResponse(props.poll._id, responseToDelete.value)
-    toast({ 
-      title: 'Réponse supprimée', 
-      description: 'La réponse a été supprimée avec succès.'
-    })
-    showDeleteConfirm.value = false
-  } catch (err) {
-    toast({ 
-      title: 'Erreur lors de la suppression', 
-      description: err.message || 'Une erreur est survenue lors de la suppression de la réponse.',
-      variant: 'destructive' 
-    })
-  } finally {
-    deleting.value[responseToDelete.value] = false
-    responseToDelete.value = null
-  }
+    deleting.value[responseToDelete.value] = true
+    try {
+        await polls.deleteResponse(props.poll._id, responseToDelete.value)
+        toast({ title: 'Réponse supprimée', description: 'La réponse a été supprimée avec succès.' })
+        showDeleteConfirm.value = false
+    } catch (err: any) {
+        toast({
+            title: 'Erreur lors de la suppression',
+            description: err?.message || 'Une erreur est survenue lors de la suppression de la réponse.',
+            variant: 'destructive'
+        })
+    } finally {
+        deleting.value[responseToDelete.value] = false
+        responseToDelete.value = null
+    }
 }
 
-const totalResponses = computed(() => stats.value?.totalResponses || 0)
-const questions = computed(() => stats.value?.questions || [])
+const totalResponses = computed(() => stats.value?.totalResponses ?? 0)
+const questions = computed(() => stats.value?.questions ?? [])
+
+/** renvoie un pourcentage arrondi (0..100) en nombre */
+function pct(count: number, total?: number) {
+    if (!total || total <= 0) return 0
+    return Math.round((count / total) * 100)
+}
 </script>
 
 <template>
-  <div v-if="poll && stats" class="w-full">
+  <div v-if="props.poll && stats" class="w-full">
     <PollCarousel 
       :questions="questions" 
       :isCreator="true" 
@@ -80,27 +82,24 @@ const questions = computed(() => stats.value?.questions || [])
               <span class="font-medium">{{ opt.option }}</span>
               <span class="text-muted-foreground">{{ opt.count }} réponses</span>
             </div>
-            <Progress 
-              :value="(opt.count / question.total * 100).toFixed(0)" 
-              class="h-2"
-            />
+              <Progress :value="pct(opt.count, question.total)" class="h-2" />
           </div>
         </div>
 
         <!-- Réponses ouvertes -->
         <div v-else class="space-y-4">
           <div class="flex flex-wrap gap-2">
-            <Badge 
-              v-for="(resp, i) in question?.topAnswers.slice(0, 3)" 
-              :key="i"
-              variant="secondary"
-              class="text-xs"
+            <Badge
+                v-for="(resp, i) in (question?.topAnswers ?? []).slice(0, 3)"
+                :key="i"
+                variant="secondary"
+                class="text-xs"
             >
               {{ resp }}
             </Badge>
-            <div v-if="question?.topAnswers.length === 0" class="text-sm text-muted-foreground italic">
-              Aucune réponse pour l'instant
-            </div>
+              <div v-if="!question?.topAnswers?.length" class="text-sm text-muted-foreground italic">
+                  Aucune réponse pour l'instant
+              </div>
           </div>
         </div>
       </template>
@@ -181,13 +180,11 @@ const questions = computed(() => stats.value?.questions || [])
         <Button 
           variant="destructive" 
           @click="deleteAnswer"
-          :disabled="!responseToDelete || deleting[responseToDelete]"
+          :disabled="!responseToDelete || deleting[responseToDelete!]"
           class="relative"
         >
-          <span :class="{ 'opacity-0': deleting[responseToDelete] }">
-            Supprimer
-          </span>
-          <span v-if="deleting[responseToDelete]" class="absolute inset-0 flex items-center justify-center">
+            <span :class="{ 'opacity-0': deleting[responseToDelete!] }">Supprimer</span>
+            <span v-if="deleting[responseToDelete!]" class="absolute inset-0 flex items-center justify-center">
             <Loader2 class="animate-spin h-5 w-5" />
           </span>
         </Button>

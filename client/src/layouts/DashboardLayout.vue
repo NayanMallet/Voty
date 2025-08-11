@@ -1,25 +1,22 @@
-<script setup>
-import { useAuth } from '@/stores/auth.js'
-import { ref } from 'vue'
-import {
-  Sheet, SheetContent, SheetTrigger
-} from '@/components/ui/sheet/index.js'
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu/index.js'
-import { Button } from '@/components/ui/button/index.js'
-import { Menu, CircleUser } from 'lucide-vue-next'
-
+<script setup lang="ts">
+import { useAuth } from '@/stores/auth'
 import { computed } from 'vue'
-import AppSidebar from "@/layouts/AppSidebar.vue";
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import {
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+    DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
+import { Button } from '@/components/ui/button'
+import { Menu } from 'lucide-vue-next'
+import AppSidebar from '@/components/AppSidebar.vue'
 
 const auth = useAuth()
 const avatarUrl = computed(() => {
-  const user = auth.user
-  if (!user) return 'https://unavatar.io/default' // valeur de fallback
-  return `https://unavatar.io/${user.email}?fallback=https://avatar.vercel.sh/${user.name}?size=128`
-})</script>
+    const user = auth.user
+    if (!user) return 'https://unavatar.io/default'
+    return `https://unavatar.io/${user.email}?fallback=https://avatar.vercel.sh/${user.name}?size=128`
+})
+</script>
 
 <template>
   <div class="flex min-h-screen w-full flex-col">
@@ -42,10 +39,10 @@ const avatarUrl = computed(() => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>{{ auth.user?.fullName || 'Utilisateur' }}</DropdownMenuLabel>
+            <DropdownMenuLabel>{{ auth.user?.name || 'Utilisateur' }}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>Mon compte</DropdownMenuItem>
-            <DropdownMenuItem>Déconnexion</DropdownMenuItem>
+              <DropdownMenuItem @click="auth.logout()">Déconnexion</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

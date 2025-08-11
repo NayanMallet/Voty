@@ -1,89 +1,83 @@
-<script setup>
+<script setup lang="ts">
 import { computed, watch, ref } from 'vue'
 import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselPrevious,
-  CarouselNext,
+    Carousel,
+    CarouselContent,
+    CarouselItem,
+    CarouselPrevious,
+    CarouselNext,
 } from '@/components/ui/carousel'
 import { Progress } from '@/components/ui/progress'
 import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardFooter,
+    Card,
+    CardHeader,
+    CardTitle,
+    CardContent,
+    CardFooter,
 } from '@/components/ui/card'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 
-const props = defineProps({
-  questions: {
-    type: Array,
-    required: true,
-  },
-  isCreator: {
-    type: Boolean,
-    default: false,
-  },
-  stats: {
-    type: Object,
-    default: null,
-  },
-  totalResponses: {
-    type: Number,
-    default: 0,
-  },
-  modelValue: {
-    type: Number,
-    default: 0,
-  },
-  isCurrentQuestionValid: {
-    type: Boolean,
-    default: true,
-  },
-  answeredCount: {
-    type: Number,
-    default: 0,
-  },
-})
-
-const emit = defineEmits(['update:modelValue', 'showDetails'])
-
-const currentIndex = computed({
-  get: () => props.modelValue,
-  set: v => emit('update:modelValue', v),
-})
-
-const isLast = computed(() => currentIndex.value === props.questions.length - 1)
-
-const progressValue = computed(() => {
-  if (props.isCreator) {
-    return ((currentIndex.value + 1) / props.questions.length) * 100
-  }
-
-  if (!props.questions.length) return 0
-
-  const percent = (props.answeredCount / props.questions.length) * 100
-  return Math.min(Math.max(percent, 0), 100)
-})
-
-const carouselApi = ref(null)
-
-function onCarouselInit(api) {
-  carouselApi.value = api
-  api.on('select', () => {
-    const selectedIndex = api.selectedScrollSnap()
-    if (selectedIndex !== currentIndex.value) {
-      currentIndex.value = selectedIndex
-    }
-  })
+/** API minimale utilisée par le composant carousel */
+type CarouselApi = {
+    on(event: 'select', cb: () => void): void
+    selectedScrollSnap(): number
+    scrollTo(index: number): void
 }
 
-watch(currentIndex, newIndex => {
-  if (carouselApi.value) {
-    carouselApi.value.scrollTo(newIndex)
-  }
+const props = defineProps<{
+    questions: any[]
+    isCreator?: boolean
+    stats?: any | null
+    totalResponses?: number
+    modelValue?: number
+    isCurrentQuestionValid?: boolean
+    answeredCount?: number
+}>()
+
+const emit = defineEmits<{
+    (e: 'update:modelValue', v: number): void
+    (e: 'showDetails'): void
+}>()
+
+defineSlots<{
+    default(props: { question: any; index: number }): any
+    footer(props: { question: any; index: number }): any
+}>()
+
+const currentIndex = computed<number>({
+    get: () => props.modelValue ?? 0,
+    set: (v) => emit('update:modelValue', v),
+})
+
+const progressValue = computed(() => {
+    if (props.isCreator) {
+        const total = props.questions?.length || 1
+        return ((currentIndex.value + 1) / total) * 100
+    }
+    if (!props.questions?.length) return 0
+    const percent = ((props.answeredCount ?? 0) / props.questions.length) * 100
+    return Math.min(Math.max(percent, 0), 100)
+})
+
+const carouselApi = ref<CarouselApi | null>(null)
+
+/** adapte la signature attendue: (payload: EmblaCarouselType | undefined) */
+function onCarouselInit(payload?: unknown) {
+    const api = payload as CarouselApi | undefined
+    if (!api) return
+    carouselApi.value = api
+    api.on('select', () => {
+        const selectedIndex = api.selectedScrollSnap()
+        if (selectedIndex !== currentIndex.value) {
+            currentIndex.value = selectedIndex
+        }
+    })
+}
+
+watch(currentIndex, (newIndex) => {
+    if (carouselApi.value) {
+        carouselApi.value.scrollTo(newIndex)
+    }
 })
 
 watch(

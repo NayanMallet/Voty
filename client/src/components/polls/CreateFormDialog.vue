@@ -1,7 +1,7 @@
-<script setup>
-import { ref, h, nextTick, onMounted, watch } from 'vue'
+<script setup lang="ts">
+import { ref, h, nextTick, watch, type Ref } from 'vue'
 import {
-  Dialog, DialogTrigger, DialogContent, DialogFooter, DialogTitle, DialogDescription
+    Dialog, DialogTrigger, DialogContent, DialogFooter, DialogTitle, DialogDescription
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -15,158 +15,157 @@ import AddQuestionPopover from './AddQuestionPopover.vue'
 import QuestionItem from './QuestionItem.vue'
 import { v4 as uuidv4 } from 'uuid'
 import { usePolls } from '@/stores/polls'
-import { FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form/index.js'
+import { FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
+import type { Question, QuestionSubType, ChoiceOptionVM, QuestionEditorVM } from '@/types/poll'
 
 const polls = usePolls()
 const open = ref(false)
-const questionRefs = ref([])
+const questionRefs: Ref<any[]> = ref([])
 const triedSubmit = ref(false)
 
-function setQuestionRef(index, el) {
-  if (el) questionRefs.value[index] = el
+function setQuestionRef(index: number, el: any) {
+    if (el) questionRefs.value[index] = el
 }
 
-const formSchema = toTypedSchema(z.object({
-  title: z.string().min(1, 'Form title is required'),
-  description: z.string().optional(),
-  questions: z.array(z.object({
-    id: z.string(),
-    label: z.string().min(1, 'Question title is required'),
-    type: z.string(),
-    subType: z.string(),
-    options: z.array(z.object({
-      label: z.string().min(1, 'Option text is required')
-    })).optional()
-  })).min(1, 'At least one question is required')
-}))
+type FormValues = {
+    title: string
+    description?: string
+    questions: QuestionEditorVM[]
+}
 
-const form = useForm({
-  validationSchema: formSchema,
-  initialValues: {
-    title: '',
-    description: '',
-    questions: []
-  },
-  validateOnInput: true
+const formSchema = toTypedSchema(
+    z.object({
+        title: z.string().min(1, 'Form title is required'),
+        description: z.string().optional(),
+        questions: z.array(
+            z.object({
+                id: z.string(),
+                label: z.string().min(1, 'Question title is required'),
+                type: z.enum(['text', 'multi']),
+                subType: z.custom<QuestionSubType>(),
+                options: z
+                    .array(z.object({ id: z.string().uuid().optional(), label: z.string().min(1, 'Option text is required') }))
+                    .optional(),
+            })
+        ).min(1, 'At least one question is required'),
+    })
+)
+
+const form = useForm<FormValues>({
+    validationSchema: formSchema,
+    initialValues: { title: '', description: '', questions: [] },
+    // validateOnInput: true,
 })
 
-// 🔁 Si l'utilisateur corrige toutes les erreurs après un submit, on reset triedSubmit
+const formErrors = form.errors as unknown as Record<string, string>
+
 watch(
     () => form.values.questions,
     () => {
-      if (!triedSubmit.value) return
-      const stillInvalid = form.values.questions.some(q =>
-          !q.label?.trim() ||
-          (['single', 'multiple'].includes(q.subType) &&
-              (!q.options || q.options.some(opt => !opt.label?.trim())))
-      )
-      if (!stillInvalid) triedSubmit.value = false
+        if (!triedSubmit.value) return
+        const stillInvalid = form.values.questions.some(q =>
+            !q.label?.trim() ||
+            (['single', 'multiple'].includes(q.subType) &&
+                (!q.options || q.options.some(opt => !opt.label?.trim())))
+        )
+        if (!stillInvalid) triedSubmit.value = false
     },
     { deep: true }
 )
 
-const addQuestion = (question) => {
-  const newQuestion = {
-    ...question,
-    id: uuidv4(),
-    options: ['single', 'multiple'].includes(question.subType)
-        ? [{ id: uuidv4(), label: '' }]
-        : undefined
-  }
+type NewQuestionInput = Pick<QuestionEditorVM, 'type' | 'subType' | 'label'>
 
-  form.setFieldValue('questions', [...form.values.questions, newQuestion])
+function addQuestion(question: NewQuestionInput) {
+    const newQuestion: QuestionEditorVM = {
+        ...question,
+        id: uuidv4(),
+        options: ['single', 'multiple'].includes(question.subType)
+            ? [{ id: uuidv4(), label: '' }]
+            : undefined,
+    }
+    form.setFieldValue('questions', [...form.values.questions, newQuestion])
 
-  toast({
-    title: 'Question added',
-    description: h('span', {}, `Type: ${question.type}, Format: ${question.subType}`)
-  })
-}
-
-const removeQuestion = (id) => {
-  const updated = form.values.questions.filter(q => q.id !== id)
-  form.setFieldValue('questions', updated)
-  nextTick(() => {
-    toast({ title: 'Question removed', variant: 'destructive' })
-  })
-}
-
-const moveQuestion = (id, direction) => {
-  const current = [...form.values.questions]
-  const index = current.findIndex(q => q.id === id)
-  const newIndex = direction === 'up' ? index - 1 : index + 1
-  if (newIndex < 0 || newIndex >= current.length) return
-  const [moved] = current.splice(index, 1)
-  current.splice(newIndex, 0, moved)
-  form.setFieldValue('questions', current)
-}
-
-const updateLabel = (id, newLabel) => {
-  const updated = form.values.questions.map(q =>
-      q.id === id ? { ...q, label: newLabel } : q
-  )
-  form.setFieldValue('questions', updated)
-}
-
-const updateOptions = (id, newOptions) => {
-  const updated = form.values.questions.map(q =>
-      q.id === id ? { ...q, options: [...newOptions] } : q
-  )
-  form.setFieldValue('questions', updated)
-}
-
-const onSubmit = async () => {
-  triedSubmit.value = true
-  const isValid = await form.validate()
-
-  const invalidIndex = form.values.questions.findIndex(q =>
-      !q.label?.trim() ||
-      (['single', 'multiple'].includes(q.subType) &&
-          (!q.options || q.options.some(opt => !opt.label?.trim())))
-  )
-
-  if (!isValid || invalidIndex !== -1) {
     toast({
-      title: 'Form incomplete',
-      description: 'Please correct the highlighted errors.',
-      variant: 'destructive'
+        title: 'Question added',
+        description: h('span', {}, `Type: ${question.type}, Format: ${question.subType}`),
     })
+}
 
-    await nextTick()
-    questionRefs.value[invalidIndex]?.$el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    return
-  }
+function removeQuestion(id: string) {
+    const updated = form.values.questions.filter(q => q.id !== id)
+    form.setFieldValue('questions', updated)
+    void nextTick(() => {
+        toast({ title: 'Question removed', variant: 'destructive' })
+    })
+}
 
-  try {
-    const payload = {
-      name: form.values.title,
-      description: form.values.description,
-      questions: form.values.questions.map(q => ({
-        title: q.label,
-        type: ['short', 'paragraph', 'date'].includes(q.subType) ? 'open' : 'multiple_choice',
-        subType: q.subType,
-        options: ['single', 'multiple'].includes(q.subType)
-            ? q.options.map(opt => opt.label.trim())
-            : undefined
-      }))
+function moveQuestion(id: string, direction: 'up' | 'down') {
+    const current = [...form.values.questions]
+    const index = current.findIndex(q => q.id === id)
+    if (index < 0) return
+    const newIndex = direction === 'up' ? index - 1 : index + 1
+    if (newIndex < 0 || newIndex >= current.length) return
+    const [moved] = current.splice(index, 1)
+    if (!moved) return
+    current.splice(newIndex, 0, moved)
+    form.setFieldValue('questions', current)
+}
+
+function updateLabel(id: string, newLabel: string) {
+    const updated = form.values.questions.map(q => (q.id === id ? { ...q, label: newLabel } : q))
+    form.setFieldValue('questions', updated)
+}
+
+function updateOptions(id: string, newOptions: ChoiceOptionVM[]) {
+    const updated = form.values.questions.map(q => (q.id === id ? { ...q, options: [...newOptions] } : q))
+    form.setFieldValue('questions', updated)
+}
+
+async function onSubmit() {
+    triedSubmit.value = true
+    const isValid = await form.validate()
+
+    const invalidIndex = form.values.questions.findIndex(q =>
+        !q.label?.trim() ||
+        (['single', 'multiple'].includes(q.subType) &&
+            (!q.options || q.options.some(opt => !opt.label?.trim())))
+    )
+
+    if (!isValid || invalidIndex !== -1) {
+        toast({
+            title: 'Form incomplete',
+            description: 'Please correct the highlighted errors.',
+            variant: 'destructive',
+        })
+        await nextTick()
+        questionRefs.value[invalidIndex]?.$el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        return
     }
 
-    await polls.createPoll(payload)
-    await polls.fetchPolls()
+    try {
+        const questions: Question[] = form.values.questions.map(q => ({
+            title: q.label,
+            type: ['short', 'paragraph', 'date'].includes(q.subType) ? 'open' : 'multiple_choice',
+            subType: q.subType,
+            options: ['single', 'multiple'].includes(q.subType)
+                ? (q.options ?? []).map(opt => opt.label.trim())
+                : undefined,
+        }))
 
-    toast({
-      title: 'Form successfully created',
-      description: 'Your form has been saved.'
-    })
+        await polls.createPoll({ name: form.values.title, description: form.values.description, questions })
+        await polls.fetchPolls()
 
-    form.resetForm()
-    open.value = false
-  } catch (err) {
-    toast({
-      title: 'Submission failed',
-      description: err.message || 'An error occurred.',
-      variant: 'destructive'
-    })
-  }
+        toast({ title: 'Form successfully created', description: 'Your form has been saved.' })
+
+        form.resetForm()
+        open.value = false
+    } catch (err: any) {
+        toast({
+            title: 'Submission failed',
+            description: err?.message || 'An error occurred.',
+            variant: 'destructive',
+        })
+    }
 }
 </script>
 
@@ -181,10 +180,10 @@ const onSubmit = async () => {
       <DialogDescription class="sr-only">Create a new survey form</DialogDescription>
 
       <form @submit.prevent="onSubmit" class="space-y-6">
-        <div v-if="form.errors.questions">
+        <div v-if="formErrors.questions">
           <Alert variant="destructive">
             <AlertTitle>Erreur</AlertTitle>
-            <AlertDescription>{{ form.errors.questions }}</AlertDescription>
+            <AlertDescription>{{ formErrors.questions }}</AlertDescription>
           </Alert>
         </div>
 
@@ -194,7 +193,7 @@ const onSubmit = async () => {
               <FormControl>
                 <Input
                     :modelValue="form.values.title"
-                    @update:modelValue="val => form.setFieldValue('title', val)"
+                    @update:modelValue="val => form.setFieldValue('title', String(val))"
                     placeholder="Form title"
                     class="text-2xl font-bold text-heading border-none outline-none shadow-none focus-visible:ring-0 px-0"
                     v-bind="componentField"
@@ -209,7 +208,7 @@ const onSubmit = async () => {
               <FormControl>
                 <Input
                     :modelValue="form.values.description"
-                    @update:modelValue="val => form.setFieldValue('description', val)"
+                    @update:modelValue="val => form.setFieldValue('description', String(val))"
                     placeholder="Add a short description here"
                     class="text-sm text-muted placeholder:text-muted border-none outline-none shadow-none focus-visible:ring-0 px-0"
                     v-bind="componentField"
@@ -228,7 +227,7 @@ const onSubmit = async () => {
               :question="q"
               :is-first="i === 0"
               :is-last="i === form.values.questions.length - 1"
-              :is-invalid="triedSubmit && (!q.label?.trim() || (['single', 'multiple'].includes(q.subType) && q.options?.some(opt => !opt.label?.trim())))"
+              :is-invalid="triedSubmit && (!q.label?.trim() || (['single','multiple'].includes(q.subType) && (!q.options || q.options.some(opt => !opt.label?.trim()))))"
               @remove="() => removeQuestion(q.id)"
               @move-up="() => moveQuestion(q.id, 'up')"
               @move-down="() => moveQuestion(q.id, 'down')"

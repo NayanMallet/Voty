@@ -1,8 +1,10 @@
-<script setup>
-const props = defineProps({
-  poll: { type: Object, required: true },
-  selected: { type: Boolean, default: false }
-})
+<script setup lang="ts">
+import type { Poll } from '@/types/poll'
+
+defineProps<{
+    poll: Poll
+    selected?: boolean
+}>()
 </script>
 
 <template>

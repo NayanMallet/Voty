@@ -14,6 +14,9 @@ jobs:
       run:
         working-directory: ./client
 
+    env:
+      VITE_API_URL: ${{ vars.FRONTEND_API_URL }}  # ✅ dispo pour TOUTES les steps
+
     steps:
       - name: ⬇️ Checkout repo
         uses: actions/checkout@v4
@@ -29,6 +32,9 @@ jobs:
           node-version: 20
           cache: 'pnpm'
           cache-dependency-path: ./client/pnpm-lock.yaml
+
+      - name: 🔎 Debug env
+        run: echo "VITE_API_URL=$VITE_API_URL"  # ✅ tu verras la valeur dans les logs
 
       - name: 📦 Install dependencies
         run: pnpm install

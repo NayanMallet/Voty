@@ -1,8 +1,8 @@
-<script setup>
-import { ref, h, nextTick, onMounted, watch, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+<script setup lang="ts">
+import { ref, h, nextTick, onMounted, watch, type Ref } from 'vue'
+import { useRouter } from 'vue-router'
 import {
-  Dialog, DialogTrigger, DialogContent, DialogFooter, DialogTitle, DialogDescription
+    Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -16,295 +16,260 @@ import AddQuestionPopover from './AddQuestionPopover.vue'
 import QuestionItem from './QuestionItem.vue'
 import { v4 as uuidv4 } from 'uuid'
 import { usePolls } from '@/stores/polls'
-import { FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form/index.js'
+import { FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
 import api from '@/services/axios'
 import { useAuth } from '@/stores/auth'
+import type { Poll, PollStats, Question, QuestionSubType, ChoiceOptionVM, QuestionEditorWithLock } from '@/types/poll'
 
 const polls = usePolls()
 const auth = useAuth()
-const route = useRoute()
 const router = useRouter()
-const questionRefs = ref([])
+
+const questionRefs: Ref<any[]> = ref([])
 const triedSubmit = ref(false)
 const loading = ref(true)
-const existingPoll = ref(null)
-const pollStats = ref(null)
+const existingPoll = ref<Poll | null>(null)
+const pollStats = ref<PollStats | null>(null)
 const isDeleting = ref(false)
 const showDeleteDialog = ref(false)
 
-const props = defineProps({
-  pollId: {
-    type: String,
-    required: true
-  },
-  open: {
-    type: Boolean,
-    default: false
-  }
-})
+const props = defineProps<{
+    pollId: string
+    open?: boolean
+}>()
 
-const emit = defineEmits(['update:open'])
+const emit = defineEmits<{ (e: 'update:open', v: boolean): void }>()
 
-// Reset showDeleteDialog when the main dialog is closed
 watch(() => props.open, (isOpen) => {
-  if (!isOpen) {
-    showDeleteDialog.value = false
-  }
+    if (!isOpen) showDeleteDialog.value = false
 })
 
-// Check if a question has responses
-const hasResponses = (questionId) => {
-  if (!pollStats.value) return false
-  const question = pollStats.value.questions.find(q => q._id === questionId)
-  return question && ((question.type === 'multiple_choice' && question.total > 0) || 
-                     (question.type === 'open' && question.responses.length > 0))
+function setQuestionRef(index: number, el: any) {
+    if (el) questionRefs.value[index] = el
 }
 
-function setQuestionRef(index, el) {
-  if (el) questionRefs.value[index] = el
+const formSchema = toTypedSchema(
+    z.object({
+        title: z.string().min(1, 'Form title is required'),
+        description: z.string().optional(),
+        questions: z.array(
+            z.object({
+                id: z.string(),
+                label: z.string().min(1, 'Question title is required'),
+                type: z.enum(['text', 'multi']),
+                subType: z.custom<QuestionSubType>(),
+                options: z.array(z.object({ id: z.string().optional(), label: z.string().min(1) })).optional(),
+                _id: z.string().optional(),
+                hasResponses: z.boolean().optional(),
+            })
+        ).min(1, 'At least one question is required'),
+    })
+)
+
+type FormValues = {
+    title: string
+    description?: string
+    questions: QuestionEditorWithLock[]
 }
 
-const formSchema = toTypedSchema(z.object({
-  title: z.string().min(1, 'Form title is required'),
-  description: z.string().optional(),
-  questions: z.array(z.object({
-    id: z.string(),
-    label: z.string().min(1, 'Question title is required'),
-    type: z.string(),
-    subType: z.string(),
-    options: z.array(z.object({
-      label: z.string().min(1, 'Option text is required')
-    })).optional(),
-    _id: z.string().optional(), // For existing questions
-    hasResponses: z.boolean().optional() // To track if question has responses
-  })).min(1, 'At least one question is required')
-}))
-
-const form = useForm({
-  validationSchema: formSchema,
-  initialValues: {
-    title: '',
-    description: '',
-    questions: []
-  },
-  validateOnInput: true
+const form = useForm<FormValues>({
+    validationSchema: formSchema,
+    initialValues: { title: '', description: '', questions: [] },
+    // validateOnInput: true,
 })
 
-// Load existing poll data
+const formErrors = form.errors as unknown as Record<string, string>
+
+function hasResponses(questionId: string): boolean {
+    if (!pollStats.value) return false
+    const question = pollStats.value.questions.find(q => q._id === questionId)
+    return !!question && (
+        (question.type === 'multiple_choice' && (question.total ?? 0) > 0) ||
+        (question.type === 'open' && (question.responses?.length ?? 0) > 0)
+    )
+}
+
 onMounted(async () => {
-  if (!props.pollId) {
-    emit('update:open', false)
-    return
-  }
+    if (!props.pollId) {
+        emit('update:open', false)
+        return
+    }
 
-  try {
-    // Fetch poll data
-    const res = await api.get(`/polls/${props.pollId}`)
-    existingPoll.value = res.data
+    try {
+        const res = await api.get(`/polls/${props.pollId}`)
+        existingPoll.value = res.data as Poll
 
-    // Fetch poll stats to check for responses
-    const statsRes = await api.get(`/polls/${props.pollId}/stats`, {
-      headers: { Authorization: `Bearer ${auth.token}` }
-    })
-    pollStats.value = statsRes.data
+        const statsRes = await api.get(`/polls/${props.pollId}/stats`, {
+            headers: { Authorization: `Bearer ${auth.token}` },
+        })
+        pollStats.value = statsRes.data as PollStats
 
-    // Map poll data to form format
-    form.setValues({
-      title: existingPoll.value.name,
-      description: existingPoll.value.description || '',
-      questions: existingPoll.value.questions.map(q => {
-        const questionId = q._id
-        const questionHasResponses = hasResponses(questionId)
-
-        return {
-          id: uuidv4(),
-          _id: questionId, // Store original ID
-          label: q.title,
-          type: q.type === 'open' ? 'text' : 'choice',
-          subType: q.type === 'open' ? 'short' : 'single',
-          options: q.type === 'multiple_choice' ? q.options.map(opt => ({ 
-            id: uuidv4(), 
-            label: opt 
-          })) : undefined,
-          hasResponses: questionHasResponses
-        }
-      })
-    })
-  } catch (err) {
-    toast({
-      title: 'Error loading form',
-      description: err.message || 'Failed to load form data',
-      variant: 'destructive'
-    })
-    router.push('/home')
-  } finally {
-    loading.value = false
-  }
+        form.setValues({
+            title: existingPoll.value.name,
+            description: existingPoll.value.description || '',
+            questions: existingPoll.value.questions.map<QuestionEditorWithLock>(q => ({
+                id: uuidv4(),
+                _id: q._id,
+                label: q.title,
+                type: q.type === 'open' ? 'text' : 'multi',
+                subType: q.type === 'open' ? 'short' : 'single',
+                options: q.type === 'multiple_choice'
+                    ? (q.options ?? []).map(opt => ({ id: uuidv4(), label: opt }))
+                    : undefined,
+                hasResponses: hasResponses(q._id!),
+            })),
+        })
+    } catch (err: any) {
+        toast({
+            title: 'Error loading form',
+            description: err?.message || 'Failed to load form data',
+            variant: 'destructive',
+        })
+        void router.push('/home')
+    } finally {
+        loading.value = false
+    }
 })
 
-// 🔁 Si l'utilisateur corrige toutes les erreurs après un submit, on reset triedSubmit
 watch(
     () => form.values.questions,
     () => {
-      if (!triedSubmit.value) return
-      const stillInvalid = form.values.questions.some(q =>
-          !q.label?.trim() ||
-          (['single', 'multiple'].includes(q.subType) &&
-              (!q.options || q.options.some(opt => !opt.label?.trim())))
-      )
-      if (!stillInvalid) triedSubmit.value = false
+        if (!triedSubmit.value) return
+        const stillInvalid = form.values.questions.some(q =>
+            !q.label?.trim() ||
+            (['single', 'multiple'].includes(q.subType) &&
+                (!q.options || q.options.some(opt => !opt.label?.trim())))
+        )
+        if (!stillInvalid) triedSubmit.value = false
     },
     { deep: true }
 )
 
-const addQuestion = (question) => {
-  const newQuestion = {
-    ...question,
-    id: uuidv4(),
-    options: ['single', 'multiple'].includes(question.subType)
-        ? [{ id: uuidv4(), label: '' }]
-        : undefined
-  }
+type NewQuestionInput = Pick<QuestionEditorWithLock, 'type' | 'subType' | 'label'>
 
-  form.setFieldValue('questions', [...form.values.questions, newQuestion])
+function addQuestion(question: NewQuestionInput) {
+    const newQuestion: QuestionEditorWithLock = {
+        ...question,
+        id: uuidv4(),
+        options: ['single', 'multiple'].includes(question.subType)
+            ? [{ id: uuidv4(), label: '' }]
+            : undefined,
+    }
+    form.setFieldValue('questions', [...form.values.questions, newQuestion])
 
-  toast({
-    title: 'Question added',
-    description: h('span', {}, `Type: ${question.type}, Format: ${question.subType}`)
-  })
-}
-
-const removeQuestion = (id) => {
-  const updated = form.values.questions.filter(q => q.id !== id)
-  form.setFieldValue('questions', updated)
-  nextTick(() => {
-    toast({ title: 'Question removed', variant: 'destructive' })
-  })
-}
-
-const moveQuestion = (id, direction) => {
-  const current = [...form.values.questions]
-  const index = current.findIndex(q => q.id === id)
-  const newIndex = direction === 'up' ? index - 1 : index + 1
-  if (newIndex < 0 || newIndex >= current.length) return
-  const [moved] = current.splice(index, 1)
-  current.splice(newIndex, 0, moved)
-  form.setFieldValue('questions', current)
-}
-
-const updateLabel = (id, newLabel) => {
-  const updated = form.values.questions.map(q =>
-      q.id === id ? { ...q, label: newLabel } : q
-  )
-  form.setFieldValue('questions', updated)
-}
-
-const updateOptions = (id, newOptions) => {
-  const updated = form.values.questions.map(q =>
-      q.id === id ? { ...q, options: [...newOptions] } : q
-  )
-  form.setFieldValue('questions', updated)
-}
-
-const onSubmit = async () => {
-  triedSubmit.value = true
-  const isValid = await form.validate()
-
-  const invalidIndex = form.values.questions.findIndex(q =>
-      !q.label?.trim() ||
-      (['single', 'multiple'].includes(q.subType) &&
-          (!q.options || q.options.some(opt => !opt.label?.trim())))
-  )
-
-  if (!isValid || invalidIndex !== -1) {
     toast({
-      title: 'Form incomplete',
-      description: 'Please correct the highlighted errors.',
-      variant: 'destructive'
+        title: 'Question added',
+        description: h('span', {}, `Type: ${question.type}, Format: ${question.subType}`),
     })
+}
 
-    await nextTick()
-    questionRefs.value[invalidIndex]?.$el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    return
-  }
+function removeQuestion(id: string) {
+    const updated = form.values.questions.filter(q => q.id !== id)
+    form.setFieldValue('questions', updated)
+    void nextTick(() => toast({ title: 'Question removed', variant: 'destructive' }))
+}
 
-  try {
-    // Create an array of questions in the order they appear in the form
-    const updatedQuestions = form.values.questions.map(q => {
-      // If the question has responses, use the original question data
-      if (q.hasResponses && existingPoll.value) {
-        const origQ = existingPoll.value.questions.find(origQ => origQ._id === q._id)
-        if (origQ) {
-          return origQ
+function moveQuestion(id: string, direction: 'up' | 'down') {
+    const current = [...form.values.questions]
+    const index = current.findIndex(q => q.id === id)
+    if (index < 0) return
+    const newIndex = direction === 'up' ? index - 1 : index + 1
+    if (newIndex < 0 || newIndex >= current.length) return
+    const [moved] = current.splice(index, 1)
+    if (!moved) return
+    current.splice(newIndex, 0, moved)
+    form.setFieldValue('questions', current)
+}
+
+function updateLabel(id: string, newLabel: string) {
+    const updated = form.values.questions.map(q => (q.id === id ? { ...q, label: newLabel } : q))
+    form.setFieldValue('questions', updated)
+}
+
+function updateOptions(id: string, newOptions: ChoiceOptionVM[]) {
+    const updated = form.values.questions.map(q => (q.id === id ? { ...q, options: [...newOptions] } : q))
+    form.setFieldValue('questions', updated)
+}
+
+async function onSubmit() {
+    triedSubmit.value = true
+    const isValid = await form.validate()
+
+    const invalidIndex = form.values.questions.findIndex(q =>
+        !q.label?.trim() ||
+        (['single', 'multiple'].includes(q.subType) &&
+            (!q.options || q.options.some(opt => !opt.label?.trim())))
+    )
+
+    if (!isValid || invalidIndex !== -1) {
+        toast({
+            title: 'Form incomplete',
+            description: 'Please correct the highlighted errors.',
+            variant: 'destructive',
+        })
+
+        await nextTick()
+        questionRefs.value[invalidIndex]?.$el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        return
+    }
+
+    try {
+        // Respecte l’ordre et verrouille les questions ayant des réponses
+        const updatedQuestions: Question[] = form.values.questions.map(q => {
+            if (q.hasResponses && existingPoll.value) {
+                // garder la version originale
+                const origQ = existingPoll.value.questions.find(oq => oq._id === q._id)
+                if (origQ) return origQ
+            }
+            return {
+                _id: q._id,
+                title: q.label,
+                type: ['short', 'paragraph', 'date'].includes(q.subType) ? 'open' : 'multiple_choice',
+                subType: q.subType,
+                options: ['single', 'multiple'].includes(q.subType)
+                    ? (q.options ?? []).map(opt => opt.label.trim())
+                    : undefined,
+            }
+        })
+
+        await polls.editPoll(props.pollId, {
+            name: form.values.title,
+            description: form.values.description,
+            questions: updatedQuestions,
+        })
+        await polls.fetchPolls()
+
+        toast({ title: 'Form successfully updated', description: 'Your changes have been saved.' })
+        emit('update:open', false)
+    } catch (err: any) {
+        toast({
+            title: 'Update failed',
+            description: err?.message || 'An error occurred.',
+            variant: 'destructive',
+        })
+    }
+}
+
+async function deletePoll() {
+    if (!props.pollId) return
+    isDeleting.value = true
+    try {
+        await polls.deletePoll(props.pollId)
+        await polls.fetchPolls()
+        toast({ title: 'Form deleted', description: 'The form has been permanently deleted.' })
+        emit('update:open', false)
+        if (window.location.pathname !== '/home') {
+            await router.push('/home')
         }
-      }
-
-      // Otherwise, create a new question object with the updated data
-      return {
-        _id: q._id, // Include original ID if it exists
-        title: q.label,
-        type: ['short', 'paragraph', 'date'].includes(q.subType) ? 'open' : 'multiple_choice',
-        subType: q.subType,
-        options: ['single', 'multiple'].includes(q.subType)
-            ? q.options.map(opt => opt.label.trim())
-            : undefined
-      }
-    })
-
-    const payload = {
-      name: form.values.title,
-      description: form.values.description,
-      questions: updatedQuestions
+    } catch (err: any) {
+        toast({
+            title: 'Deletion failed',
+            description: err?.message || 'An error occurred.',
+            variant: 'destructive',
+        })
+    } finally {
+        isDeleting.value = false
     }
-
-    await polls.editPoll(props.pollId, payload)
-    await polls.fetchPolls()
-
-    toast({
-      title: 'Form successfully updated',
-      description: 'Your changes have been saved.'
-    })
-
-    emit('update:open', false)
-  } catch (err) {
-    toast({
-      title: 'Update failed',
-      description: err.message || 'An error occurred.',
-      variant: 'destructive'
-    })
-  }
-}
-
-const deletePoll = async () => {
-  if (!props.pollId) return
-
-  isDeleting.value = true
-  try {
-    await polls.deletePoll(props.pollId)
-
-    // Refresh the polls list
-    await polls.fetchPolls()
-
-    toast({
-      title: 'Form deleted',
-      description: 'The form has been permanently deleted.'
-    })
-
-    emit('update:open', false)
-
-    // Redirect to home if not already there
-    if (window.location.pathname !== '/home') {
-      router.push('/home')
-    }
-  } catch (err) {
-    toast({
-      title: 'Deletion failed',
-      description: err.message || 'An error occurred.',
-      variant: 'destructive'
-    })
-  } finally {
-    isDeleting.value = false
-  }
 }
 </script>
 
@@ -322,10 +287,10 @@ const deletePoll = async () => {
 
       <!-- Form content -->
       <form v-else @submit.prevent="onSubmit" class="space-y-6">
-        <div v-if="form.errors.questions">
+        <div v-if="formErrors.questions">
           <Alert variant="destructive">
             <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{{ form.errors.questions }}</AlertDescription>
+            <AlertDescription>{{ formErrors.questions }}</AlertDescription>
           </Alert>
         </div>
 
@@ -335,7 +300,7 @@ const deletePoll = async () => {
               <FormControl>
                 <Input
                     :modelValue="form.values.title"
-                    @update:modelValue="val => form.setFieldValue('title', val)"
+                    @update:modelValue="val => form.setFieldValue('title', String(val))"
                     placeholder="Form title"
                     class="text-2xl font-bold text-heading border-none outline-none shadow-none focus-visible:ring-0 px-0"
                     v-bind="componentField"
@@ -350,7 +315,7 @@ const deletePoll = async () => {
               <FormControl>
                 <Input
                     :modelValue="form.values.description"
-                    @update:modelValue="val => form.setFieldValue('description', val)"
+                    @update:modelValue="val => form.setFieldValue('description', String(val))"
                     placeholder="Add a short description here"
                     class="text-sm text-muted placeholder:text-muted border-none outline-none shadow-none focus-visible:ring-0 px-0"
                     v-bind="componentField"
@@ -369,7 +334,7 @@ const deletePoll = async () => {
               :question="q"
               :is-first="i === 0"
               :is-last="i === form.values.questions.length - 1"
-              :is-invalid="triedSubmit && (!q.label?.trim() || (['single', 'multiple'].includes(q.subType) && q.options?.some(opt => !opt.label?.trim())))"
+              :is-invalid="triedSubmit && (!q.label?.trim() || (['single','multiple'].includes(q.subType) && (!q.options || q.options.some(opt => !opt.label?.trim()))))"
               :disabled="q.hasResponses"
               @remove="() => removeQuestion(q.id)"
               @move-up="() => moveQuestion(q.id, 'up')"

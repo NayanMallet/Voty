@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken'
 import type { Request, Response, NextFunction } from 'express'
 import { HttpError } from '../lib/http_error'
+import { env } from "../config/env";
 
 interface JwtPayload {
     user: {
@@ -17,7 +18,7 @@ const auth = (req: AuthenticatedRequest, res: Response, next: NextFunction): voi
     if (!token) return next(new HttpError(401, 'No token, authorization denied'))
 
     try {
-        const secret = process.env.JWT_SECRET;
+        const secret = env.JWT_SECRET;
         if (!secret) throw new Error('JWT_SECRET is not defined')
 
         const decoded = jwt.verify(token, secret) as JwtPayload;

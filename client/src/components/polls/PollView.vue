@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/stores/auth'
@@ -12,80 +12,77 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from '@/components/ui/toast'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-vue-next'
+import type { Poll } from '@/types/poll'
+import { assertDefined } from '@/utils/assert'
 
-const props = defineProps({
-  pollId: String,
-  embedded: Boolean
-})
-
+const props = defineProps<{
+    pollId?: string;
+    embedded?: boolean
+}>()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuth()
 const polls = usePolls()
 
 const loading = ref(true)
-const error = ref(null)
-const poll = ref(null)
-const userResponse = ref(null)
+const error = ref<string | null>(null)
+const poll = ref<Poll | null>(null)
+const userResponse = ref<any>(null)
 const needsAuth = ref(false)
 
-const fetchPoll = async (pollId) => {
-  try {
-    if (!auth.isAuthenticated) {
-      if (!props.embedded) {
-        needsAuth.value = true
-        loading.value = false
-        return
-      }
-      router.replace({ path: '/login', query: { redirect: route.fullPath } })
-      return
-    }
-
-    if (!pollId) {
-      error.value = 'ID du formulaire manquant dans l\'URL.'
-      return
-    }
-
-    const res = await api.get(`/polls/${pollId}`)
-    poll.value = res.data
-
-    const isCreator = poll.value.creator && poll.value.creator === auth.user?._id
-    if (isCreator) {
-      polls.selectPoll(poll.value)
-      return
-    }
-
-    const resp = await api.get(`/polls/users/me/responses/${pollId}`, {
-      headers: { Authorization: `Bearer ${auth.token}` }
-    })
-    userResponse.value = resp.data || null
-  } catch (e) {
-    console.error(e)
-    error.value = e?.response?.data?.message || 'Une erreur est survenue'
-  } finally {
-    loading.value = false
-  }
+function getCreatorId(p: Poll) {
+    return typeof p.creator === 'string' ? p.creator : p.creator._id
 }
 
-onMounted(() => {
-  fetchPoll(props.pollId || route.params.pollId)
-})
+const fetchPoll = async (pollId?: string) => {
+    try {
+        if (!auth.isAuthenticated) {
+            if (!props.embedded) {
+                needsAuth.value = true
+                loading.value = false
+                return
+            }
+            await router.replace({ path: '/login', query: { redirect: route.fullPath } })
+            return
+        }
 
-watch(() => props.pollId, (newVal) => {
-  if (newVal) {
-    loading.value = true
-    fetchPoll(newVal)
-  }
-})
+        assertDefined(pollId, 'pollId missing in route')
+        const res = await api.get(`/polls/${pollId}`)
+        assertDefined(res.data, 'poll not found')
+        poll.value = res.data as Poll
+
+        // If creator, no need to fetch "my response"
+        const isCreator = getCreatorId(poll.value) === auth.user?._id
+        if (isCreator) {
+            polls.selectPoll(poll.value)
+            return
+        }
+
+        const resp = await api.get(`/polls/users/me/responses/${pollId}`, {
+            headers: { Authorization: `Bearer ${auth.token}` },
+        })
+        userResponse.value = resp.data || null
+    } catch (e: any) {
+        error.value = e?.response?.data?.message ?? e?.message ?? 'Erreur inconnue'
+    } finally {
+        loading.value = false
+    }
+}
+
+onMounted(() => { void fetchPoll(props.pollId || (route.params.pollId as string)) })
+watch(() => props.pollId, (id) => { if (id) { loading.value = true; void fetchPoll(id) } })
 
 const copyLink = () => {
-  const url = `/polls/${poll.value?.creator?.name || 'user'}/${poll.value._id}`
-  const fullUrl = `${location.origin}${url}`
-  navigator.clipboard.writeText(fullUrl)
-  toast({ 
-    title: 'Lien copié !', 
-    description: 'Le lien du formulaire a été copié dans le presse-papier.'
-  })
+    assertDefined(poll.value, 'No poll loaded')
+    const name = typeof poll.value.creator === 'string'
+        ? (auth.user?.name ?? 'user')
+        : (poll.value.creator?.name ?? 'user')
+    const url = `${location.origin}/polls/${name}/${poll.value._id}`
+    navigator.clipboard.writeText(url)
+    toast({
+        title: 'Lien copié !',
+        description: 'Lien copié dans le presse-papier.'
+    })
 }
 
 const redirectToLogin = () => {

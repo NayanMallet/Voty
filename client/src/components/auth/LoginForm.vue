@@ -1,57 +1,46 @@
-<script setup>
+<script setup lang="ts">
 import { ref, h } from 'vue'
 import { useForm } from 'vee-validate'
 import { z } from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
 import { vAutoAnimate } from '@formkit/auto-animate/vue'
-import { useAuth } from '@/stores/auth.js'
-import { toast } from '@/components/ui/toast/index.js'
-import { Input } from '@/components/ui/input/index.js'
-import { Button } from '@/components/ui/button/index.js'
-import {
-  Alert,
-  AlertTitle,
-  AlertDescription,
-} from '@/components/ui/alert/index.js'
-import {
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-} from '@/components/ui/form/index.js'
+import { useAuth } from '@/stores/auth'
+import { toast } from '@/components/ui/toast'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
 
 const auth = useAuth()
 const errorMessage = ref('')
 
 const loginSchema = toTypedSchema(z.object({
-  email: z.string().email({ message: 'Email invalide' }),
-  password: z.string().min(6, 'Mot de passe trop court'),
+    email: z.string().email({ message: 'Email invalide' }),
+    password: z.string().min(6, 'Mot de passe trop court'),
 }))
 
-const form = useForm({
-  validationSchema: loginSchema,
-  validateOnInput: true,
+const form = useForm<{ email: string; password: string }>({
+    validationSchema: loginSchema,
+    // validateOnInput: true,
 })
 
 const onSubmit = form.handleSubmit(async (values) => {
-  errorMessage.value = '' // Clear previous error
-  try {
-    await auth.login(values.email, values.password)
-    toast({
-      title: 'Connexion réussie',
-      description: h('span', {}, `Bienvenue ${values.email}`),
-    })
-  } catch (err) {
-    console.error('Login error:', err)
-    errorMessage.value = 'Email ou mot de passe incorrect'
-    // Still show toast for accessibility
-    toast({
-      title: 'Erreur',
-      description: 'Email ou mot de passe incorrect',
-      variant: 'destructive',
-    })
-  }
+    errorMessage.value = ''
+    try {
+        await auth.login(values.email, values.password)
+        toast({
+            title: 'Connexion réussie',
+            description: h('span', {}, `Bienvenue ${values.email}`),
+        })
+    } catch (err) {
+        console.error('Login error:', err)
+        errorMessage.value = 'Email ou mot de passe incorrect'
+        toast({
+            title: 'Erreur',
+            description: 'Email ou mot de passe incorrect',
+            variant: 'destructive',
+        })
+    }
 })
 </script>
 

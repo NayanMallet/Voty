@@ -1,276 +1,137 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, h, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuth } from '@/stores/auth.js'
+import { useAuth } from '@/stores/auth'
 import { useForm } from 'vee-validate'
 import { z } from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
-import { toast } from '@/components/ui/toast/index.js'
+import { toast } from '@/components/ui/toast'
 import { X } from 'lucide-vue-next'
 import { vAutoAnimate } from '@formkit/auto-animate/vue'
-import { Button } from '@/components/ui/button/index.js'
-import { Input } from '@/components/ui/input/index.js'
-
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
-  Alert,
-  AlertTitle,
-  AlertDescription,
-} from '@/components/ui/alert/index.js'
-
+    Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle
+} from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from '@/components/ui/avatar'
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card/index.js'
-
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs/index.js'
-
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-} from '@/components/ui/form/index.js'
-
-import { Separator } from '@/components/ui/separator/index.js'
+    Form, FormField, FormItem, FormLabel, FormControl, FormMessage
+} from '@/components/ui/form'
+import { Separator } from '@/components/ui/separator'
 
 const router = useRouter()
 const auth = useAuth()
-const user = computed(() => auth.user || {})
+const user = computed<any>(() => auth.user || {})
 
-// Avatar URL
 const avatarUrl = computed(() => {
-  if (!user.value?.email) return ''
-  return `https://unavatar.io/${user.value.email}?fallback=https://avatar.vercel.sh/${user.value.name}?size=128`
+    if (!user.value?.email) return ''
+    return `https://unavatar.io/${user.value.email}?fallback=https://avatar.vercel.sh/${user.value.name}?size=128`
 })
-
-// Initial for avatar fallback
 const initial = computed(() => user.value?.name?.[0] || 'U')
+const goToHome = () => { router.push('/home') }
 
-// Navigate back to home
-const goToHome = () => {
-  router.push('/home')
-}
+const nameError = ref(''); const emailError = ref(''); const passwordError = ref(''); const deleteError = ref('')
 
-// Error messages
-const nameError = ref('')
-const emailError = ref('')
-const passwordError = ref('')
-const deleteError = ref('')
-
-// Update Name Form
-const nameSchema = toTypedSchema(z.object({
-  name: z.string().min(2, 'Name is too short'),
-}))
-
-const nameForm = useForm({
-  validationSchema: nameSchema,
-  initialValues: {
-    name: user.value?.name || '',
-  },
-  validateOnInput: true,
+/* Name form */
+const nameSchema = toTypedSchema(z.object({ name: z.string().min(2, 'Name is too short') }))
+const nameForm = useForm<{ name: string }>({
+    validationSchema: nameSchema,
+    initialValues: { name: user.value?.name || '' },
 })
-
-const updateName = async (values) => {
-  nameError.value = '' // Clear previous error
-  try {
-    await auth.updateName(values.name)
-    toast({
-      title: 'Success',
-      description: h('span', {}, `Your name has been updated to ${values.name}`),
-    })
-  } catch (err) {
-    console.error('Error updating name:', err)
-    nameError.value = 'Failed to update name'
-    // Show toast for accessibility
-    toast({
-      title: 'Error',
-      description: nameError.value,
-      variant: 'destructive',
-    })
-  }
+const updateName = async (values: { name: string }) => {
+    nameError.value = ''
+    try {
+        await auth.updateName(values.name)
+        toast({ title: 'Success', description: h('span', {}, `Your name has been updated to ${values.name}`) })
+    } catch (err) {
+        console.error('Error updating name:', err)
+        nameError.value = 'Failed to update name'
+        toast({ title: 'Error', description: nameError.value, variant: 'destructive' })
+    }
 }
 
-// Update Email Form
+/* Email form */
 const emailSchema = toTypedSchema(z.object({
-  email: z.string().email({ message: 'Email invalide' }),
-  password: z.string().min(6, 'Mot de passe trop court'),
+    email: z.string().email({ message: 'Email invalide' }),
+    password: z.string().min(6, 'Mot de passe trop court'),
 }))
-
-const emailForm = useForm({
-  validationSchema: emailSchema,
-  initialValues: {
-    email: '',
-    password: '',
-  },
-  validateOnInput: true,
+const emailForm = useForm<{ email: string; password: string }>({
+    validationSchema: emailSchema,
+    initialValues: { email: '', password: '' },
 })
-
-const updateEmail = async (values) => {
-  console.log('Trying to update email with values:', values)
-  emailError.value = '' // Clear previous error
-  try {
-    console.log('Trying to update email with values:', values)
-    await auth.updateEmail(values.email, values.password)
-    console.log('Email updated successfully')
-    toast({
-      title: 'Mise à jour réussie',
-      description: h('span', {}, `Votre email a été mis à jour avec succès à ${values.email}`),
-    })
-    // Reset form values
-    values.email = ''
-    values.password = ''
-  } catch (err) {
-    console.error('Error updating email:', err)
-    if (err.response?.data?.message === 'User already exists') {
-      emailError.value = "L'email est déjà utilisé par un autre compte"
-    } else if (err.response?.data?.message === 'Invalid credentials') {
-      emailError.value = 'Mot de passe incorrect'
-    } else {
-      emailError.value = 'Échec de la mise à jour de l\'email'
+const updateEmail = async (values: { email: string; password: string }) => {
+    emailError.value = ''
+    try {
+        await auth.updateEmail(values.email, values.password)
+        toast({ title: 'Mise à jour réussie', description: h('span', {}, `Votre email a été mis à jour avec succès à ${values.email}`) })
+        emailForm.resetForm({ values: { email: '', password: '' } })
+    } catch (err: any) {
+        console.error('Error updating email:', err)
+        if (err?.response?.data?.message === 'User already exists') emailError.value = "L'email est déjà utilisé par un autre compte"
+        else if (err?.response?.data?.message === 'Invalid credentials') emailError.value = 'Mot de passe incorrect'
+        else emailError.value = "Échec de la mise à jour de l'email"
+        toast({ title: 'Error', description: emailError.value, variant: 'destructive' })
     }
-    // Show toast for accessibility
-    toast({
-      title: 'Error',
-      description: emailError.value,
-      variant: 'destructive',
-    })
-  }
 }
 
-// Update Password Form
+/* Password form */
 const passwordSchema = toTypedSchema(z.object({
-  currentPassword: z.string().min(1, 'Current password is required'),
-  newPassword: z.string().min(6, 'New password must be at least 6 characters'),
-  confirmPassword: z.string().min(6, 'Confirm password must be at least 6 characters'),
-}).refine(data => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ['confirmPassword'],
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z.string().min(6, 'New password must be at least 6 characters'),
+    confirmPassword: z.string().min(6, 'Confirm password must be at least 6 characters'),
+}).refine(d => d.newPassword === d.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
 }))
-
-const passwordForm = useForm({
-  validationSchema: passwordSchema,
-  initialValues: {
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  },
-  validateOnInput: true,
+const passwordForm = useForm<{ currentPassword: string; newPassword: string; confirmPassword: string }>({
+    validationSchema: passwordSchema,
+    initialValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
 })
-
-// Reset success message when user starts typing in the form
-watch(() => [
-  passwordForm.values.currentPassword,
-  passwordForm.values.newPassword,
-  passwordForm.values.confirmPassword
-], () => {
-  if (passwordSuccess.value) {
-    passwordSuccess.value = false
-  }
-})
-
-// Success message for password update
 const passwordSuccess = ref(false)
-
-const updatePassword = async (values) => {
-  passwordError.value = '' // Clear previous error
-  passwordSuccess.value = false // Reset success message
-  try {
-    console.log('Trying to update password with values:', values)
-    await auth.updatePassword(values.currentPassword, values.newPassword)
-    console.log('Password updated successfully')
-
-    // Show success message
-    passwordSuccess.value = true
-
-    // Show toast notification
-    toast({
-      title: 'Success',
-      description: h('span', {}, 'Your password has been updated successfully'),
-      variant: 'default',
-      duration: 5000, // Show for 5 seconds
-    })
-
-    // Reset form using the form object
-    passwordForm.resetForm({
-      values: {
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      }
-    })
-  } catch (err) {
-    console.error('Error updating password:', err)
-    if (err.response?.data?.message === 'Invalid credentials') {
-      passwordError.value = 'Current password is incorrect'
-    } else {
-      passwordError.value = 'Failed to update password'
+watch(() => [passwordForm.values.currentPassword, passwordForm.values.newPassword, passwordForm.values.confirmPassword], () => {
+    if (passwordSuccess.value) passwordSuccess.value = false
+})
+const updatePassword = async (values: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
+    passwordError.value = ''
+    passwordSuccess.value = false
+    try {
+        await auth.updatePassword(values.currentPassword, values.newPassword)
+        passwordSuccess.value = true
+        toast({ title: 'Success', description: h('span', {}, 'Your password has been updated successfully') })
+        passwordForm.resetForm({ values: { currentPassword: '', newPassword: '', confirmPassword: '' } })
+    } catch (err: any) {
+        console.error('Error updating password:', err)
+        passwordError.value = err?.response?.data?.message === 'Invalid credentials'
+            ? 'Current password is incorrect'
+            : 'Failed to update password'
+        toast({ title: 'Error', description: passwordError.value, variant: 'destructive' })
     }
-    // Show toast for accessibility
-    toast({
-      title: 'Error',
-      description: passwordError.value,
-      variant: 'destructive',
-    })
-  }
 }
 
-// Delete Account Form
+/* Delete form */
 const deleteSchema = toTypedSchema(z.object({
-  password: z.string().min(1, 'Password is required'),
-  confirmation: z.literal('delete my account', {
-    errorMap: () => ({ message: 'Please type "delete my account" to confirm' }),
-  }),
+    password: z.string().min(1, 'Password is required'),
+    confirmation: z.literal('delete my account', {
+        errorMap: () => ({ message: 'Please type "delete my account" to confirm' }),
+    }),
 }))
-
-const deleteForm = useForm({
-  validationSchema: deleteSchema,
-  initialValues: {
-    password: '',
-    confirmation: '',
-  },
-  validateOnInput: true,
+const deleteForm = useForm<{ password: string; confirmation: string }>({
+    validationSchema: deleteSchema,
+    initialValues: { password: '', confirmation: '' },
 })
-
-const deleteAccount = async (values) => {
-  deleteError.value = '' // Clear previous error
-  try {
-    await auth.deleteAccount(values.password)
-    toast({
-      title: 'Account Deleted',
-      description: h('span', {}, 'Your account has been permanently deleted'),
-    })
-    // No need to call auth.logout() as it's already called in the deleteAccount method
-  } catch (err) {
-    console.error('Error deleting account:', err)
-    if (err.response?.data?.message === 'Invalid credentials') {
-      deleteError.value = 'Incorrect password'
-    } else {
-      deleteError.value = 'Failed to delete account'
+const deleteAccount = async (values: { password: string; confirmation: string }) => {
+    deleteError.value = ''
+    try {
+        await auth.deleteAccount(values.password)
+        toast({ title: 'Account Deleted', description: h('span', {}, 'Your account has been permanently deleted') })
+    } catch (err: any) {
+        console.error('Error deleting account:', err)
+        deleteError.value =
+            err?.response?.data?.message === 'Invalid credentials' ? 'Incorrect password' : 'Failed to delete account'
+        toast({ title: 'Error', description: deleteError.value, variant: 'destructive' })
     }
-    // Show toast for accessibility
-    toast({
-      title: 'Error',
-      description: deleteError.value,
-      variant: 'destructive',
-    })
-  }
 }
 </script>
 
@@ -314,7 +175,9 @@ const deleteAccount = async (values) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Form :validation-schema="nameSchema" :initial-values="{ name: user.name || '' }" @submit="updateName" class="space-y-6">
+              <Form :validation-schema="nameSchema" :initial-values="{ name: user.name || '' }"
+                    @submit="(v) => updateName(v as { name: string })"
+                    class="space-y-6">
               <Alert v-if="nameError" variant="destructive" class="mb-4">
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{{ nameError }}</AlertDescription>
@@ -357,7 +220,9 @@ const deleteAccount = async (values) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Form :validation-schema="emailSchema" :initial-values="{ email: '', password: '' }" @submit="updateEmail" class="space-y-6">
+              <Form :validation-schema="emailSchema" :initial-values="{ email: '', password: '' }"
+                    @submit="(v) => updateEmail(v as { email: string; password: string })"
+                    class="space-y-6">
               <Alert v-if="emailError" variant="destructive" class="mb-4">
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{{ emailError }}</AlertDescription>
@@ -404,7 +269,10 @@ const deleteAccount = async (values) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Form :validation-schema="passwordSchema" :initial-values="{ currentPassword: '', newPassword: '', confirmPassword: '' }" @submit="updatePassword" class="space-y-6">
+              <Form :validation-schema="passwordSchema"
+                    :initial-values="{ currentPassword: '', newPassword: '', confirmPassword: '' }"
+                    @submit="(v) => updatePassword(v as { currentPassword: string; newPassword: string; confirmPassword: string })"
+                    class="space-y-6">
               <Alert v-if="passwordError" variant="destructive" class="mb-4">
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{{ passwordError }}</AlertDescription>
@@ -466,7 +334,9 @@ const deleteAccount = async (values) => {
             </CardDescription>
           </CardHeader>
           <CardContent class="pt-6">
-            <Form :validation-schema="deleteSchema" :initial-values="{ password: '', confirmation: '' }" @submit="deleteAccount" class="space-y-6">
+              <Form :validation-schema="deleteSchema" :initial-values="{ password: '', confirmation: '' }"
+                    @submit="(v) => deleteAccount(v as { password: string; confirmation: string })"
+                    class="space-y-6">
               <Alert v-if="deleteError" variant="destructive" class="mb-4">
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{{ deleteError }}</AlertDescription>

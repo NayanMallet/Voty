@@ -1,10 +1,8 @@
-<script setup>
-import { PopoverTrigger } from 'reka-ui';
+<script setup lang="ts">
+import type { PopoverTriggerProps } from "reka-ui"
+import { PopoverTrigger } from "reka-ui"
 
-const props = defineProps({
-  asChild: { type: Boolean, required: false },
-  as: { type: null, required: false },
-});
+const props = defineProps<PopoverTriggerProps>()
 </script>
 
 <template>
