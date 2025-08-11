@@ -6,6 +6,9 @@ import { xss } from 'express-xss-sanitizer';
 
 import connectDB from './config/connectDB';
 import { setupSwagger } from './config/swagger';
+import { httpLogger } from './middleware/httpLogger'
+import { attachRequestLogger } from './middleware/attachRequestLogger'
+import { errorHandler } from './middleware/errorHandler'
 
 // Routes
 import authRoutes from './routes/authRoutes';
@@ -14,7 +17,6 @@ import pollRoutes from './routes/pollRoutes';
 import responsesRoutes from "./routes/responsesRoutes";
 
 dotenvFlow.config();
-console.log('JWT_SECRET from dotenv-flow:', process.env.JWT_SECRET);
 
 const app = express();
 
@@ -24,6 +26,10 @@ app.use(xss());
 
 // Body parser
 app.use(express.json());
+
+// Logs HTTP + req.log
+app.use(httpLogger);
+app.use(attachRequestLogger);
 
 // CORS sécurisé
 app.use(cors({
@@ -42,8 +48,10 @@ if (process.env.NODE_ENV !== 'test') {
     connectDB();
     setupSwagger(app);
     const PORT = process.env.PORT || 3000;
-    console.log('Loaded JWT_SECRET:', process.env.JWT_SECRET);
     app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
 }
+
+// 🚑 ALWAYS last
+app.use(errorHandler)
 
 export default app;
