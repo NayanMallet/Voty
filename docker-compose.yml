@@ -6,6 +6,9 @@ services:
     image: mongo:latest
     container_name: voty-mongo
     restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpassword
     volumes:
       - mongo-data:/data/db
     ports:
@@ -13,10 +16,11 @@ services:
     networks:
       - voty-network
     healthcheck:
-      test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
+      test: ["CMD", "mongosh", "--username", "root", "--password", "rootpassword", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
+    # pas de profile -> démarre par défaut (pratique pour le dev local DB-only)
 
   # Server service
   server:
@@ -26,9 +30,10 @@ services:
     container_name: voty-server
     restart: always
     depends_on:
-      - mongo
+      mongo:
+        condition: service_healthy
     environment:
-      - MONGO_URI=mongodb://mongo:27017/voty
+      - MONGO_URI=mongodb://root:rootpassword@mongo:27017/voty?authSource=admin
       - PORT=3000
       - JWT_SECRET=your_jwt_secret_key_here
       - CLIENT_URL=http://localhost
@@ -36,22 +41,24 @@ services:
       - "3000:3000"
     networks:
       - voty-network
+    profiles: ["app"]
 
   # Client service
   client:
     build:
       context: ./client
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:3000/api
     container_name: voty-client
     restart: always
     depends_on:
       - server
-    environment:
-      - VITE_API_URL=http://localhost:3000/api
     ports:
       - "80:80"
     networks:
       - voty-network
+    profiles: ["app"]
 
 networks:
   voty-network:

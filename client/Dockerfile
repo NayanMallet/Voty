@@ -16,6 +16,9 @@ RUN pnpm install
 # Copy the rest of the application
 COPY . .
 
+ARG VITE_API_URL=/api
+ENV VITE_API_URL=$VITE_API_URL
+
 # Build the application
 RUN pnpm build
 

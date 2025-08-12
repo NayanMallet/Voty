@@ -16,6 +16,7 @@ import authRoutes from './routes/authRoutes';
 import protectedRoutes from './routes/protectedRoutes';
 import pollRoutes from './routes/pollRoutes';
 import responsesRoutes from "./routes/responsesRoutes";
+import healthRoutes from "./routes/healthRoutes";
 
 dotenvFlow.config({ silent: true })
 
@@ -43,6 +44,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/protected', protectedRoutes);
 app.use('/api/polls', pollRoutes);
 app.use('/api/polls', responsesRoutes);
+app.use("/api", healthRoutes);
 
 // Server
 if (env.NODE_ENV !== 'test') {

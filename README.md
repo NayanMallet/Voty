@@ -1,151 +1,156 @@
-# Voty - Système de Sondage
+# Voty — Système de sondage (Vue 3 / Node.js / MongoDB)
 
-## Description
-
-Voty est une application web permettant la création, la gestion et la réponse à des sondages en ligne, similaire à Google Forms.  
-Le backend est développé avec Node.js, Express et MongoDB, le frontend est prévu en Vue.js.  
-Les utilisateurs peuvent s'inscrire, créer des sondages composés de questions ouvertes ou QCM, et collecter les réponses des participants.
-
----
-
-## Fonctionnalités principales
-
-- Inscription et authentification des utilisateurs (créateurs et répondants)
-- Création, modification, suppression de sondages avec des questions multiples
-- Types de questions : ouverte, choix multiples (QCM)
-- Réponses associées à l'utilisateur et au sondage
-- Consultation des sondages disponibles
-- API REST sécurisée avec JSON Web Tokens (JWT)
+Voty est une application web permettant de créer, publier et répondre à des sondages (questions ouvertes et QCM).
+- **Client** : Vue 3 + Vite, servi par **Nginx**
+- **API** : Node.js + Express + TypeScript + Mongoose
+- **DB** : MongoDB 7
+- **Infra dev** : Docker Compose avec **profils** (`app`), healthchecks et variables d’environnement
 
 ---
 
-## Tech Stack
+## TL;DR — Démarrer en 1 minute
 
-- Backend : Node.js, Express, MongoDB, Mongoose
-- Authentification : JWT, bcryptjs
-- Frontend : Vue.js (à venir)
-- Conteneurisation : Docker (Application complète)
+> Prérequis : Docker + Docker Compose, `pnpm` conseillé.
+
+```bash
+# Lancer toute la stack (client + api + db)
+pnpm stack:up
+
+# Suivre les logs
+pnpm stack:logs
+
+# Arrêter
+pnpm stack:down
+```
+
+- Front : http://localhost
+- API :   http://localhost:3000/api
+- Health: http://localhost:3000/api/health
 
 ---
 
-## Prérequis
+## Scripts disponibles (racine)
 
-### Pour le développement local
-- Node.js v16+
-- pnpm ou npm
-- MongoDB (via Docker ou installation locale)
+```json
+{
+  "scripts": {
+    "db:up": "docker compose up -d mongo",
+    "db:down": "docker compose stop mongo",
+    "db:logs": "docker compose logs -f mongo",
 
-### Pour le déploiement Docker
-- Docker
-- Docker Compose
+    "stack:up": "docker compose --profile app up -d --build",
+    "stack:down": "docker compose --profile app down",
+    "stack:logs": "docker compose logs -f server client mongo"
+  }
+}
+```
+
+- `db:*` : ne démarre **que Mongo** (pratique pour dev local hors Docker)
+- `stack:*` : démarre **client + serveur + db** via le profil `app`
 
 ---
 
-## Installation & Lancement
+## Deux workflows de développement
 
-### Backend
+### A) Dev local rapide (recommandé pour corriger le front)
 
-1. Cloner le repo :
-
+1) **DB en Docker**
 ```bash
-git clone <url-du-repo>
-cd voty/server
+pnpm db:up
+pnpm db:logs   # attendre "{ ok: 1 }"
 ```
 
-2. Installer les dépendances :
-
-```bash
-pnpm install
-```
-
-2. Installer les dépendances :
-
-```bash
-pnpm install
-```
-
-3. Lancer MongoDB avec Docker :
-
-```bash
-docker run -d --name voty-mongo -p 27017:27017 -e MONGO_INITDB_ROOT_USERNAME=admin -e MONGO_INITDB_ROOT_PASSWORD=admin mongo
-```
-
-4. Configurer la base de données :
-
-```bash
-MONGO_URI=mongodb://admin:admin@localhost:27017/?authSource=admin
+2) **API en local** (dans `server/`)  
+   Créer `server/.env.development` :
+```dotenv
+MONGO_URI=mongodb://root:rootpassword@127.0.0.1:27017/voty?authSource=admin&directConnection=true
 PORT=3000
-JWT_SECRET=tonSecretJWT
+JWT_SECRET=dev-secret-change-me
+CLIENT_URL=http://localhost
+```
+Lancer :
+```bash
+pnpm -F server dev
 ```
 
-5. Démarrer le serveur en mode développement :
-
+3) **Client en local** (dans `client/`)  
+   Créer `client/.env.local` :
+```dotenv
+VITE_API_URL=http://localhost:3000/api
+```
+Lancer :
 ```bash
-pnpm dev
+pnpm -F client dev
 ```
 
-Le backend sera accessible sur : ```http://localhost:3000```
+### B) E2E en Docker (parité démo/prod)
 
-
-API Endpoints (exemples)
-
-POST /api/auth/register - Inscription utilisateur
-POST /api/auth/login - Connexion utilisateur
-GET /api/sondages - Liste des sondages publics
-POST /api/sondages - Création d’un sondage (auth requis)
-PUT /api/sondages/:id - Mise à jour d’un sondage (auth requis)
-DELETE /api/sondages/:id - Suppression d’un sondage (auth requis)
-POST /api/sondages/:id/reponses - Soumission de réponses
-
-Structure du projet
 ```bash
-/server
-  |-- index.js           # Point d'entrée backend
-  |-- /models            # Schémas Mongoose
-  |-- /routes            # Routes Express
-  |-- .env               # Variables d'environnement
-  |-- package.json
-  |-- Dockerfile         # Configuration Docker pour le serveur
-/client
-  |-- /src               # Code source Vue.js
-  |-- package.json
-  |-- Dockerfile         # Configuration Docker pour le client
-  |-- nginx.conf         # Configuration Nginx pour servir l'application
-docker-compose.yml       # Configuration Docker Compose pour l'ensemble de l'application
+pnpm stack:up
+# client : http://localhost
+# api    : http://localhost:3000/api
+```
+
+> **Note Vite** : en mode Docker, `VITE_API_URL` est **injecté au build** (via `client/Dockerfile` et `docker-compose.yml` → `build.args`).  
+> Pour le changer : modifie `docker-compose.yml` → `client.build.args.VITE_API_URL`, puis rebuild :
+```bash
+docker compose build client --no-cache
+pnpm stack:up
 ```
 
 ---
 
-## Déploiement avec Docker
+## Endpoints utiles
 
-Pour déployer l'application complète (client, serveur et base de données) avec Docker :
+- `GET /api/health` → liveness/readiness JSON (retourne 200 si DB connectée, sinon 503)
+- Auth, polls, responses : voir le code dans `server/src/routes/*` (Swagger JSDoc dans les handlers)
 
-1. Cloner le repo :
+---
 
-```bash
-git clone <url-du-repo>
-cd voty
+## Structure du repo
+
+```
+.
+├── docker-compose.yml
+├── README.md
+├── client/
+│   ├── Dockerfile
+│   ├── nginx.conf
+│   ├── src/...
+│   └── README.md
+└── server/
+    ├── Dockerfile
+    ├── src/
+    │   ├── index.ts
+    │   ├── routes/
+    │   │   ├── healthRoutes.ts
+    │   │   ├── authRoutes.ts
+    │   │   ├── pollRoutes.ts
+    │   │   └── responsesRoutes.ts
+    │   └── ...
+    └── README.md
 ```
 
-2. Lancer l'application avec Docker Compose :
+---
 
-```bash
-docker-compose up -d
-```
+## Dépannage rapide
 
-L'application sera accessible sur :
-- Client (Frontend) : `http://localhost`
-- API (Backend) : `http://localhost:3000/api`
-- MongoDB : `mongodb://localhost:27017`
+- **Mongo “unhealthy”** au démarrage :
+  ```bash
+  docker compose down -v     # ⚠️ supprime les données locales
+  pnpm stack:up
+  ```
+- **Front appelle la mauvaise API** en Docker : vérifier `client.build.args.VITE_API_URL` et **rebuild le client**.
+- **404 sur /api/health** : vérifier que `healthRoutes` est bien monté dans `server/src/index.ts` :
+  ```ts
+  import healthRoutes from "./routes/healthRoutes";
+  app.use("/api", healthRoutes);
+  ```
+- **CORS** : l’API doit autoriser `http://localhost` (déjà le cas dans ta config).
 
-3. Pour arrêter l'application :
+---
 
-```bash
-docker-compose down
-```
+## Versions conseillées
 
-4. Pour arrêter l'application et supprimer les volumes (données de la base de données) :
-
-```bash
-docker-compose down -v
-```
+- Node 20.x (si exécution locale), pnpm 10.x
+- Images Docker : `node:20-alpine`, `mongo:7`, `nginx:alpine`
