@@ -68,10 +68,28 @@ export const usePolls = defineStore('polls', {
 
         async fetchMyResponse(pollId: string) {
             const auth = useAuth()
-            const res = await api.get(`/polls/users/me/responses/${pollId}`, {
-                headers: { Authorization: `Bearer ${auth.token}` },
-            })
-            return res.data ?? null
+            try {
+                const res = await api.get(`/polls/users/me/responses/${pollId}`, {
+                    headers: { Authorization: `Bearer ${auth.token}` },
+                    validateStatus: (s) => (s >= 200 && s < 300) || s === 404 || s === 204,
+                })
+                if (res.status === 404 || res.status === 204) return null
+                const raw: any = res.data
+                if (raw == null) return null
+                // unwrap possible { response } payload from server
+                const data = (typeof raw === 'object' && 'response' in raw) ? (raw as any).response : raw
+                if (data == null) return null
+                if (Array.isArray(data)) return data.length > 0 ? data[0] : null
+                if (typeof data === 'object') {
+                    const hasMeaningful = ('_id' in data) || ('id' in data) || ('answers' in data)
+                    return hasMeaningful ? data : null
+                }
+                return null
+            } catch (e: any) {
+                // if backend returns 404 as an exception (without validateStatus), treat as no response
+                if (e?.response?.status === 404) return null
+                throw e
+            }
         },
 
         async createPoll(pollData: Partial<Poll>) {

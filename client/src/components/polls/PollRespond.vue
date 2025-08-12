@@ -14,6 +14,8 @@ import { Textarea } from '@/components/ui/textarea'
 import PollCarousel from '@/components/polls/PollCarousel.vue'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Rocket } from 'lucide-vue-next'
+import { CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import type { Poll } from '@/types/poll'
 import { assertDefined } from '@/utils/assert'
 
@@ -88,6 +90,7 @@ const answeredCount = computed(() => {
     }, 0)
 })
 
+
 async function submit() {
     if (!poll.value) return
     if (!allAnswered.value) { toast({ title: 'Formulaire incomplet', variant: 'destructive' }); return }
@@ -100,7 +103,7 @@ async function submit() {
             }))
         })
         showSuccess.value = true
-        setTimeout(() => { void router.push('/home') }, 3000)
+        isSubmitting.value = false
     } catch {
         toast({ title: 'Erreur d’envoi', variant: 'destructive' })
         isSubmitting.value = false
@@ -112,10 +115,46 @@ async function submit() {
     <div v-if="!loading && poll" v-auto-animate class="w-full">
         <Dialog v-model:open="showSuccess">
             <DialogContent class="text-center">
-                <div class="space-y-4 py-6">
-                    <Rocket class="h-12 w-12 text-primary animate-bounce" />
-                    <h2 class="text-2xl font-bold">Réponses envoyées !</h2>
-                    <p>Merci pour votre participation. Redirection…</p>
+                <div class="space-y-5 py-6 flex flex-col items-center">
+                    <Rocket class="h-12 w-12 text-primary animate-bounce mx-auto" />
+                    <h2 class="text-2xl font-bold">Votre réponse a été enregistrée</h2>
+                    <p class="text-sm text-muted-foreground">Vous pouvez fermer cette fenêtre.</p>
+
+                    <CardContent v-if="poll.questions.length" class="space-y-4 pt-4 w-full">
+                        <div
+                            v-for="(q, i) in poll.questions"
+                            :key="i"
+                            class="border rounded-lg p-4 bg-card space-y-2"
+                        >
+                          <div class="flex items-center gap-2">
+                            <h3 class="font-medium">{{ q.title }}</h3>
+                            <Badge variant="outline" class="ml-auto text-xs">
+                              Votre réponse
+                            </Badge>
+                          </div>
+                          <div class="text-sm flex flex-col items-start text-muted-foreground space-y-1">
+                            <!-- multiple-choice multiple -->
+                            <template v-if="Array.isArray(answers[i])">
+                              <div
+                                  v-for="(opt, j) in (answers[i] as any)"
+                                  :key="j"
+                                  class="flex items-center gap-2"
+                              >
+                                <span class="w-2 h-2 rounded-full bg-primary"></span>
+                                <span>{{ opt }}</span>
+                              </div>
+                            </template>
+                            <!-- multiple-choice single ou open question -->
+                            <template v-else>
+                              <span>{{ answers[i] }}</span>
+                            </template>
+                          </div>
+                        </div>
+                    </CardContent>
+
+                    <div class="pt-2">
+                        <Button variant="default" @click="router.push('/home')">Retour à l’accueil</Button>
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>
