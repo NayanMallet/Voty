@@ -27,11 +27,10 @@ export const usePolls = defineStore('polls', {
                     headers: { Authorization: `Bearer ${auth.token}` },
                 })
 
-                // API returns { polls: Poll[] }
-                const payload = isRecord(res.data) ? res.data.polls : res.data
+                const payload = isRecord(res.data) ? (res.data as any).polls : res.data
                 const list = ensureArray<Poll>(payload)
 
-                // creator can be string or populated object
+                // ne garder que mes formulaires
                 const me = auth.user?._id
                 this.all = list.filter(p => {
                     if (!p?.creator) return false
@@ -40,13 +39,39 @@ export const usePolls = defineStore('polls', {
                         : p.creator._id === me
                 })
 
-                // (optionnel) trier par date si dispo
-                // this.all.sort((a,b) => +new Date(b.updatedAt ?? b.createdAt ?? 0) - +new Date(a.updatedAt ?? a.createdAt ?? 0))
+                // trier par updatedAt puis createdAt (desc)
+                this.all.sort((a: any, b: any) => {
+                    const da = +new Date(a.updatedAt ?? a.createdAt ?? 0)
+                    const db = +new Date(b.updatedAt ?? b.createdAt ?? 0)
+                    return db - da
+                })
+
+                // si rien de sélectionné, prendre la plus récente
+                if (!this.selected && this.all.length) {
+                    this.selectPoll(this.all[0] ?? null)
+                }
             } catch (e) {
                 console.error('[polls] Failed to fetch', e)
             } finally {
                 this.loading = false
             }
+        },
+
+        async fetchPollById(id: string): Promise<Poll> {
+            const auth = useAuth()
+            const res = await api.get(`/polls/${id}`, {
+                headers: { Authorization: `Bearer ${auth.token}` },
+            })
+            const p = (isRecord(res.data) && (res.data as any).poll) as Poll | undefined
+            return (p ?? (res.data as Poll)) // l’API peut renvoyer {poll} ou le poll direct
+        },
+
+        async fetchMyResponse(pollId: string) {
+            const auth = useAuth()
+            const res = await api.get(`/polls/users/me/responses/${pollId}`, {
+                headers: { Authorization: `Bearer ${auth.token}` },
+            })
+            return res.data ?? null
         },
 
         async createPoll(pollData: Partial<Poll>) {
@@ -56,7 +81,14 @@ export const usePolls = defineStore('polls', {
             })
             const poll = (isRecord(res.data) && (res.data as any).poll) as Poll | undefined
             assertDefined(poll, '[polls] server did not return { poll }')
+            // insérer et re-trier
             this.all.unshift(poll)
+            this.all.sort((a: any, b: any) => {
+                const da = +new Date(a.updatedAt ?? a.createdAt ?? 0)
+                const db = +new Date(b.updatedAt ?? b.createdAt ?? 0)
+                return db - da
+            })
+            this.selectPoll(poll)
             return poll
         },
 
@@ -70,8 +102,15 @@ export const usePolls = defineStore('polls', {
 
             const i = this.all.findIndex(p => p._id === id)
             if (i !== -1) this.all[i] = updated
+
+            this.all.sort((a: any, b: any) => {
+                const da = +new Date(a.updatedAt ?? a.createdAt ?? 0)
+                const db = +new Date(b.updatedAt ?? b.createdAt ?? 0)
+                return db - da
+            })
+
             if (this.selected?._id === id) {
-                this.selected = updated
+                this.selectPoll(updated)
                 await this.getPollStats(id).catch(() => {})
             }
             return updated
@@ -86,13 +125,13 @@ export const usePolls = defineStore('polls', {
             if (this.selected?._id === id) {
                 this.selected = null
                 this.stats = null
+                if (this.all.length) this.selectPoll(this.all[0] ?? null)
             }
         },
 
         generatePollUrl(poll?: Poll | null) {
             if (!poll?._id) return '/'
-            const name =
-                typeof poll.creator === 'string' ? '' : (poll.creator?.name ?? 'user')
+            const name = typeof poll.creator === 'string' ? '' : (poll.creator?.name ?? 'user')
             return `/polls/${name}/${poll._id}`
         },
 
@@ -101,7 +140,6 @@ export const usePolls = defineStore('polls', {
             const res = await api.get(`/polls/${pollId}/stats`, {
                 headers: { Authorization: `Bearer ${auth.token}` },
             })
-            // Backend returns { totalResponses, questions }
             assertDefined(res.data, '[polls] stats missing')
             this.stats = res.data as PollStats
             return this.stats

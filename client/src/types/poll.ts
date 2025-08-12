@@ -22,6 +22,8 @@ export interface Poll {
     status: PollStatus
     creator: string | CreatorRef
     questions: Question[]
+    createdAt?: string
+    updatedAt?: string
 }
 
 /** Vue “stats” retournée par l’API */

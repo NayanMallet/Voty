@@ -96,8 +96,11 @@ onMounted(async () => {
     }
 
     try {
-        const res = await api.get(`/polls/${props.pollId}`)
-        existingPoll.value = res.data as Poll
+        const res = await api.get(`/polls/${props.pollId}`, {
+            headers: { Authorization: `Bearer ${auth.token}` },
+        })
+        const data: any = res.data
+        existingPoll.value = (data && data.poll) ? (data.poll as Poll) : (data as Poll)
 
         const statsRes = await api.get(`/polls/${props.pollId}/stats`, {
             headers: { Authorization: `Bearer ${auth.token}` },
@@ -272,7 +275,7 @@ async function deletePoll() {
     }
 }
 
-watch(open, (isOpen) => {
+watch(() => props.open, (isOpen) => {
     if (isOpen) {
         triedSubmit.value = false
         form.setErrors({}) // nettoie les erreurs éventuelles
@@ -365,9 +368,9 @@ const showArrayMinError = computed(
 
         <DialogFooter class="flex justify-between">
           <div>
-            <Button 
-              type="button" 
-              variant="destructive" 
+            <Button
+              type="button"
+              variant="destructive"
               @click="showDeleteDialog = true"
               :disabled="isDeleting"
             >
@@ -394,8 +397,8 @@ const showArrayMinError = computed(
 
       <DialogFooter>
         <Button variant="secondary" @click="showDeleteDialog = false">Cancel</Button>
-        <Button 
-          variant="destructive" 
+        <Button
+          variant="destructive"
           @click="deletePoll"
           :disabled="isDeleting"
         >
