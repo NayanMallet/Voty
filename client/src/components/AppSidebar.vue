@@ -22,11 +22,9 @@ import { useAuth } from '@/stores/auth'
 import { vAutoAnimate } from '@formkit/auto-animate/vue'
 import CreateFormDialog from '@/components/polls/CreateFormDialog.vue'
 import type { Poll } from '@/types/poll'
-import { useRouter } from 'vue-router'
 
 type NavItem = { title: string; icon: Component }
 
-const router = useRouter()
 const auth = useAuth()
 const polls = usePolls()
 
@@ -44,11 +42,6 @@ const filteredPolls = computed<Poll[]>(() =>
 
 function handleSelectPoll(poll: Poll) {
     polls.selectPoll(poll)
-    const username =
-        typeof poll.creator === 'string'
-            ? (auth.user?.name ?? 'user')
-            : (poll.creator?.name ?? 'user')
-    router.replace({ name: 'poll-view', params: { username, pollId: poll._id } })
 }
 
 const navMain = ref<NavItem[]>([{ title: 'Forms', icon: File }])
@@ -150,7 +143,7 @@ const activeItem = ref<NavItem>(navMain.value[0]!)
                 :key="poll._id"
                 :poll="poll"
                 :selected="polls.selected?._id === poll._id"
-                @click="handleSelectPoll(poll)"
+                @click.prevent="handleSelectPoll(poll)"
             />
           </SidebarGroupContent>
         </SidebarGroup>
