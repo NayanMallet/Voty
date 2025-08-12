@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, h, nextTick, watch, type Ref } from 'vue'
+import { ref, h, nextTick, watch, computed, type Ref } from 'vue'
 import {
     Dialog, DialogTrigger, DialogContent, DialogFooter, DialogTitle, DialogDescription
 } from '@/components/ui/dialog'
@@ -54,7 +54,7 @@ const formSchema = toTypedSchema(
 const form = useForm<FormValues>({
     validationSchema: formSchema,
     initialValues: { title: '', description: '', questions: [] },
-    // validateOnInput: true,
+    validateOnMount: false,
 })
 
 const formErrors = form.errors as unknown as Record<string, string>
@@ -167,6 +167,17 @@ async function onSubmit() {
         })
     }
 }
+
+watch(open, (isOpen) => {
+    if (isOpen) {
+        triedSubmit.value = false
+        form.setErrors({}) // nettoie les erreurs éventuelles
+    }
+})
+
+const showArrayMinError = computed(
+    () => triedSubmit.value && form.values.questions.length === 0
+)
 </script>
 
 <template>
@@ -180,7 +191,7 @@ async function onSubmit() {
       <DialogDescription class="sr-only">Create a new survey form</DialogDescription>
 
       <form @submit.prevent="onSubmit" class="space-y-6">
-        <div v-if="formErrors.questions">
+        <div v-if="showArrayMinError">
           <Alert variant="destructive">
             <AlertTitle>Erreur</AlertTitle>
             <AlertDescription>{{ formErrors.questions }}</AlertDescription>

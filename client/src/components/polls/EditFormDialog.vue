@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, h, nextTick, onMounted, watch, type Ref } from 'vue'
+import {ref, h, nextTick, onMounted, watch, computed, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
     Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter
@@ -75,7 +75,7 @@ type FormValues = {
 const form = useForm<FormValues>({
     validationSchema: formSchema,
     initialValues: { title: '', description: '', questions: [] },
-    // validateOnInput: true,
+    validateOnMount: false,
 })
 
 const formErrors = form.errors as unknown as Record<string, string>
@@ -271,6 +271,17 @@ async function deletePoll() {
         isDeleting.value = false
     }
 }
+
+watch(open, (isOpen) => {
+    if (isOpen) {
+        triedSubmit.value = false
+        form.setErrors({}) // nettoie les erreurs éventuelles
+    }
+})
+
+const showArrayMinError = computed(
+    () => triedSubmit.value && form.values.questions.length === 0
+)
 </script>
 
 <template>
@@ -287,7 +298,7 @@ async function deletePoll() {
 
       <!-- Form content -->
       <form v-else @submit.prevent="onSubmit" class="space-y-6">
-        <div v-if="formErrors.questions">
+        <div v-if="triedSubmit && formErrors.questions">
           <Alert variant="destructive">
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{{ formErrors.questions }}</AlertDescription>
