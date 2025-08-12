@@ -66,15 +66,20 @@ pnpm db:logs   # attendre "{ ok: 1 }"
 MONGO_URI=mongodb://root:rootpassword@127.0.0.1:27017/voty?authSource=admin&directConnection=true
 PORT=3000
 JWT_SECRET=dev-secret-change-me
-CLIENT_URL=http://localhost
+CLIENT_URL=http://localhost:5173
 ```
 Lancer :
 ```bash
 pnpm -F server dev
 ```
+Vérifier CORS :
+```bash
+curl -sI -H 'Origin: http://localhost:5173' http://localhost:3000/api/health | grep -i access-control-allow-origin
+# => Access-Control-Allow-Origin: http://localhost:5173
+```
 
 3) **Client en local** (dans `client/`)  
-   Créer `client/.env.local` :
+   Créer `client/.env` :
 ```dotenv
 VITE_API_URL=http://localhost:3000/api
 ```
