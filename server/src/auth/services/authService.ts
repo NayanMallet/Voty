@@ -1,4 +1,5 @@
-import jwt from 'jsonwebtoken'
+import jwt, { sign, type Secret, type SignOptions } from 'jsonwebtoken'
+
 import User from '../models/User'
 import type { RegisterDTO, LoginDTO } from '../validators/authValidator'
 import { HttpError } from '../../lib/http_error'
@@ -20,7 +21,7 @@ export async function registerUser(data: RegisterDTO): Promise<string> {
 
     const payload = { user: { id: user._id.toString() } }
 
-    return jwt.sign(payload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN as any })
+    return jwt.sign(payload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN as SignOptions['expiresIn'] })
 }
 
 /**
@@ -39,5 +40,5 @@ export async function loginUser(data: LoginDTO): Promise<string> {
 
     const payload = { user: { id: user._id.toString() } }
 
-    return jwt.sign(payload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN as any })
+    return jwt.sign(payload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN as SignOptions['expiresIn'] })
 }
