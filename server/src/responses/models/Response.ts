@@ -27,5 +27,7 @@ const responseSchema = new Schema<IResponse>({
     timestamps: true
 })
 
+responseSchema.index({ poll_id: 1, user_id: 1 }, { unique: true })
+
 const Response: Model<IResponse> = model<IResponse>('Response', responseSchema)
 export default Response
